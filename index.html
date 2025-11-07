@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Pesquisa de Satisfação</title>
+		<meta
+			name="description"
+			content="Participe da pesquisa de satisfação Positivo Tecnologia e compartilhe sua experiência conosco."
+		/>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			:root {
+				color-scheme: light only;
+				font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+				--page-bg: #e9f3fc;
+				--brand-500: #0066b3;
+				--brand-600: #004d8c;
+				--brand-300: #52adb0;
+				--accent-100: #ecf6ff;
+				--accent-200: #d9ebf9;
+				--accent-500: #3bbfa3;
+				--accent-600: #27967f;
+				--danger-500: #e45c5c;
+				--text-900: #091c28;
+				--text-700: #333333;
+				--text-500: #666666;
+				--white: #ffffff;
+				--card-bg: #f5f5f5;
+				--card-border: #d9ebf9;
+				--shadow-lg: 0 40px 70px rgba(0, 40, 90, 0.15);
+				--shadow-sm: 0 12px 26px rgba(0, 40, 90, 0.12);
+			}
+
+			* {
+			html {
+				background: var(--page-bg);
+			}
+				box-sizing: border-box;
+			}
+
+			body {
+				margin: 0;
+				min-height: 100vh;
+				background: var(--page-bg);
+				color: var(--text-900);
+			}
+
+			.page {
+			.page {
+				background: var(--page-bg);
+			}
+				display: flex;
+				flex-direction: column;
+				min-height: 100vh;
+			}
+
+			.hero {
+				position: relative;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: clamp(40px, 6vw, 96px) clamp(24px, 6vw, 96px);
+			}
+
+			.hero__surface {
+				position: relative;
+				width: min(1060px, 100%);
+				min-height: clamp(520px, 60vw, 720px);
+				border-radius: 40px;
+				overflow: hidden;
+				box-shadow: var(--shadow-lg);
+			}
+
+			.hero__surface::before {
+				content: "";
+				position: absolute;
+				inset: 0;
+				background: url("semolhera (1) 1.png") center/cover no-repeat;
+						transform: scale(1.05);
+						z-index: 0;
+						pointer-events: none;
+			}
+
+			.hero__surface::after {
+				content: "";
+				position: absolute;
+				inset: 0;
+				background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.82) 100%);
+						z-index: 1;
+						pointer-events: none;
+			}
+
+			.hero__content {
+						position: relative;
+						z-index: 2;
+				display: flex;
+				flex-direction: column;
+				gap: clamp(16px, 3vw, 28px);
+				padding: clamp(36px, 6vw, 72px) clamp(32px, 6vw, 88px);
+				max-width: 720px;
+				color: var(--white);
+			}
+
+			.hero__logo {
+				width: clamp(160px, 20vw, 220px);
+				height: auto;
+			}
+
+			.hero__eyebrow {
+				letter-spacing: 0.32em;
+				text-transform: uppercase;
+				font-size: 0.85rem;
+				font-weight: 600;
+				color: rgba(255, 255, 255, 0.72);
+			}
+
+			.hero__title {
+				margin: 0;
+				font-size: clamp(2.4rem, 6vw, 4.2rem);
+				line-height: 1.05;
+				font-weight: 700;
+			}
+
+			.hero__copy {
+				margin: 0;
+				font-size: clamp(1rem, 2vw, 1.25rem);
+				line-height: 1.55;
+				color: rgba(255, 255, 255, 0.9);
+			}
+
+			.hero__copy--highlight {
+				font-weight: 700;
+				color: #ffffff;
+			}
+
+			.hero__cta {
+				display: flex;
+				flex-direction: column;
+				gap: 16px;
+				align-items: flex-start;
+			}
+
+			.button {
+				border: none;
+				border-radius: 999px;
+				padding: 18px 44px;
+				font-size: 1.05rem;
+				font-weight: 600;
+				font-family: inherit;
+				cursor: pointer;
+				display: inline-flex;
+				align-items: center;
+				gap: 12px;
+				transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+			}
+
+			.button-primary {
+				color: var(--white);
+				background: linear-gradient(103deg, var(--brand-500) 0%, var(--brand-600) 100%);
+				box-shadow: 0 18px 40px rgba(0, 80, 140, 0.35);
+			}
+
+			.button-primary:not(:disabled):hover {
+				transform: translateY(-3px);
+			}
+
+			.button-primary:disabled {
+				opacity: 0.6;
+				cursor: wait;
+				box-shadow: none;
+			}
+
+			.hero__hint {
+				margin: 0;
+				font-size: 0.95rem;
+				color: rgba(255, 255, 255, 0.75);
+			}
+
+			.hero__invitation {
+				display: grid;
+				gap: 16px;
+				grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+				padding: 16px 20px;
+				border-radius: 18px;
+				background: rgba(20, 35, 58, 0.55);
+				border: 1px solid rgba(255, 255, 255, 0.18);
+				backdrop-filter: blur(12px);
+			}
+
+			.hero__info {
+				display: flex;
+				flex-direction: column;
+				gap: 6px;
+			}
+
+			.hero__info-label {
+				font-size: 0.8rem;
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+				color: rgba(255, 255, 255, 0.65);
+			}
+
+			.hero__info-value {
+				font-size: 1.1rem;
+				font-weight: 600;
+				color: #ffffff;
+				word-break: break-word;
+			}
+
+			.survey {
+				position: relative;
+				padding-inline: clamp(16px, 6vw, 40px);
+				padding-block: 0;
+				background: var(--page-bg);
+				max-height: 0;
+				overflow: hidden;
+				opacity: 0;
+				transform: translateY(60px);
+				pointer-events: none;
+				visibility: hidden;
+				transition: opacity 300ms ease, transform 300ms ease, padding-bottom 300ms ease;
+			}
+
+			.survey.is-visible {
+				opacity: 1;
+				transform: translateY(0);
+				pointer-events: auto;
+				visibility: visible;
+				max-height: 9999px;
+				overflow: visible;
+				padding-bottom: clamp(80px, 12vw, 128px);
+			}
+
+			.survey__form {
+				width: min(960px, 100%);
+				margin: -56px auto 0;
+				background: var(--page-bg);
+				border-radius: 32px;
+				padding: clamp(32px, 4vw, 56px);
+				box-shadow: var(--shadow-lg);
+				display: flex;
+				flex-direction: column;
+				gap: clamp(28px, 4vw, 48px);
+			}
+
+			.survey-hero {
+				position: relative;
+				border-radius: 24px;
+				padding: clamp(32px, 5vw, 56px);
+				background: linear-gradient(135deg, rgba(0, 102, 179, 0.92) 0%, rgba(0, 77, 140, 0.94) 100%);
+				color: #ffffff;
+				overflow: hidden;
+			}
+
+			.survey-hero::after {
+				content: "";
+				position: absolute;
+				inset: auto -40% -60% auto;
+				width: clamp(280px, 40vw, 420px);
+				height: clamp(280px, 40vw, 420px);
+				background: radial-gradient(circle, rgba(82, 173, 176, 0.48) 0%, transparent 70%);
+				opacity: 0.9;
+			}
+
+			.survey-hero__eyebrow {
+				letter-spacing: 0.32em;
+				text-transform: uppercase;
+				font-size: 0.8rem;
+				font-weight: 600;
+				color: rgba(255, 255, 255, 0.7);
+			}
+
+			.survey-hero h2 {
+				margin: 12px 0;
+				font-size: clamp(1.9rem, 4vw, 2.6rem);
+				line-height: 1.2;
+			}
+
+			.survey-hero p {
+				margin: 0;
+				max-width: 560px;
+				font-size: clamp(1rem, 1.8vw, 1.16rem);
+				line-height: 1.6;
+				color: rgba(255, 255, 255, 0.9);
+			}
+
+			.survey__questions {
+				display: flex;
+				flex-direction: column;
+				gap: clamp(12px, 3vw, 20px);
+			}
+
+			.question-gap {
+				height: clamp(28px, 5vw, 40px);
+				border-radius: 24px;
+				background: var(--page-bg);
+			}
+
+			.question-card {
+				border-radius: 20px;
+				padding: clamp(24px, 4vw, 40px);
+				background: var(--card-bg);
+				border: 1px solid rgba(217, 235, 249, 0.65);
+				box-shadow: var(--shadow-sm);
+				display: grid;
+				gap: clamp(18px, 3vw, 28px);
+			}
+
+		.question-card--accent {
+			background: #f9f7f6;
+			border-color: rgba(217, 235, 249, 0.35);
+		}
+
+		.question-card--accent .question-card__icon {
+			background: rgba(59, 191, 163, 0.18);
+		}			.question-card__header {
+				display: flex;
+				gap: 16px;
+				align-items: flex-start;
+			}
+
+			.question-card__icon {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 42px;
+				height: 42px;
+				border-radius: 12px;
+				background: rgba(82, 173, 176, 0.16);
+				font-size: 1.25rem;
+			}
+
+			.question-card h3 {
+				margin: 0 0 6px;
+				font-size: 1.4rem;
+				font-weight: 600;
+				color: var(--text-900);
+			}
+
+			.question-card p {
+				margin: 0;
+				font-size: 1rem;
+				line-height: 1.6;
+				color: var(--text-500);
+			}
+
+					.choice-pills {
+						display: flex;
+						flex-wrap: wrap;
+						gap: 18px;
+					}
+
+					.choice-pills[data-layout="split"] {
+						width: 100%;
+						flex-wrap: nowrap;
+						gap: 16px;
+					}
+
+					.choice-pills[data-layout="split"] .pill {
+						flex: 1 1 0;
+						justify-content: center;
+						text-align: center;
+						padding-block: 16px;
+					}
+
+			.pill {
+				position: relative;
+				padding: 14px 36px;
+				border-radius: 999px;
+				border: 2px solid var(--accent-200);
+				background: var(--white);
+				font-weight: 600;
+				color: var(--text-700);
+				cursor: pointer;
+				transition: transform 140ms ease, border 140ms ease, box-shadow 140ms ease, background 140ms ease;
+			}
+
+			.pill input {
+				position: absolute;
+				inset: 0;
+				opacity: 0;
+				cursor: pointer;
+			}
+
+			.pill.is-active {
+				border-color: var(--brand-500);
+				background: rgba(0, 102, 179, 0.12);
+				color: var(--brand-600);
+				transform: translateY(-2px);
+				box-shadow: 0 10px 20px rgba(0, 102, 179, 0.18);
+			}
+
+					@media (max-width: 640px) {
+						.choice-pills[data-layout="split"] {
+							flex-wrap: wrap;
+						}
+
+						.choice-pills[data-layout="split"] .pill {
+							flex: 1 1 100%;
+						}
+					}
+
+			.scale-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+				gap: 12px;
+			}
+
+			.scale-item {
+				position: relative;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				padding: 18px 8px;
+				border-radius: 18px;
+				border: 2px solid rgba(0, 0, 0, 0.04);
+				background: var(--tone, var(--white));
+				color: var(--tone-ink, var(--text-900));
+				font-weight: 700;
+				font-size: 1.2rem;
+				text-align: center;
+				cursor: pointer;
+				transition: transform 160ms ease, box-shadow 160ms ease, border 160ms ease;
+				min-height: 86px;
+			}
+
+			.scale-item strong {
+				font-size: 1.35rem;
+				line-height: 1;
+			}
+
+			.scale-item input {
+				position: absolute;
+				inset: 0;
+				opacity: 0;
+				cursor: pointer;
+			}
+
+			.scale-item.is-active {
+				transform: translateY(-3px);
+				border-color: rgba(0, 80, 140, 0.45);
+				box-shadow: 0 16px 30px rgba(0, 80, 140, 0.25);
+			}
+
+			.scale-legend {
+				display: flex;
+				justify-content: space-between;
+				font-size: 0.85rem;
+				color: var(--text-500);
+			}
+
+			.scale-legend--inline {
+				display: block;
+				font-size: 0.85rem;
+				color: var(--text-500);
+			}
+
+			.scale-hint {
+				margin: 0;
+				font-size: 0.85rem;
+				color: var(--text-500);
+			}
+
+		.reasons-grid {
+			display: flex;
+			flex-wrap: wrap;
+			gap: clamp(12px, 3vw, 18px);
+		}			.reason-pill {
+			position: relative;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 16px 24px;
+			border-radius: 16px;
+			border: 2px solid rgba(0, 0, 0, 0.04);
+			background: var(--white);
+			color: var(--text-700);
+			font-weight: 600;
+			text-align: center;
+			cursor: pointer;
+			transition: transform 160ms ease, border 160ms ease, background 160ms ease, box-shadow 160ms ease;
+		}
+
+		.reason-pill input {
+			position: absolute;
+			inset: 0;
+			opacity: 0;
+			cursor: pointer;
+		}
+
+		.reason-pill.is-active {
+			transform: translateY(-2px);
+			border-color: var(--brand-500);
+			background: rgba(0, 102, 179, 0.12);
+			color: var(--brand-600);
+			box-shadow: 0 12px 24px rgba(0, 102, 179, 0.18);
+		}			.other-input {
+				display: none;
+			}
+
+			.other-input textarea,
+			.text-area textarea {
+				width: 100%;
+				min-height: 140px;
+				border-radius: 18px;
+				border: 2px solid rgba(0, 0, 0, 0.04);
+				padding: 18px 24px;
+				font-family: inherit;
+				font-size: 1rem;
+				line-height: 1.6;
+				resize: vertical;
+				background: #ffffff;
+				transition: border 160ms ease, box-shadow 160ms ease;
+				color: var(--text-700);
+			}
+
+			textarea:focus,
+			input:focus {
+				outline: none;
+				border-color: rgba(0, 102, 179, 0.5);
+				box-shadow: 0 0 0 4px rgba(0, 102, 179, 0.14);
+			}
+
+			.mood-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+				gap: 16px;
+			}
+
+			.mood-card {
+				position: relative;
+				display: grid;
+				place-items: center;
+				gap: 12px;
+				padding: 22px 16px;
+				border-radius: 18px;
+				border: 2px solid transparent;
+				background: rgba(255, 255, 255, 0.88);
+				cursor: pointer;
+				transition: transform 160ms ease, border 160ms ease, box-shadow 160ms ease;
+			}
+
+			.mood-card strong {
+				font-size: 2.4rem;
+				line-height: 1;
+			}
+
+			.mood-card span {
+				font-size: 0.95rem;
+				color: var(--text-700);
+			}
+
+			.mood-card.is-active {
+				transform: translateY(-3px);
+				border-color: rgba(59, 191, 163, 0.75);
+				box-shadow: 0 14px 30px rgba(0, 120, 110, 0.25);
+				background: rgba(59, 191, 163, 0.2);
+			}
+
+			.mood-card input {
+				position: absolute;
+				inset: 0;
+				opacity: 0;
+				cursor: pointer;
+			}
+
+			.submit-area {
+				display: flex;
+				flex-direction: column;
+				gap: 16px;
+				align-items: flex-start;
+			}
+
+			.submit-area small {
+				font-size: 0.83rem;
+				color: var(--text-500);
+			}
+
+			.success-panel {
+				display: none;
+				border-radius: 20px;
+				padding: 28px 32px;
+				background: rgba(59, 191, 163, 0.12);
+				color: var(--text-900);
+				text-align: center;
+			}
+
+			.success-panel strong {
+				display: block;
+				font-size: 1.4rem;
+				margin-bottom: 6px;
+			}
+
+			.banner {
+				position: fixed;
+				inset: 0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 24px;
+				background: rgba(9, 28, 40, 0.72);
+				opacity: 0;
+				visibility: hidden;
+				transition: opacity 220ms ease;
+				z-index: 40;
+			}
+
+			.banner.is-visible {
+				opacity: 1;
+				visibility: visible;
+			}
+
+			.banner__panel {
+				width: min(520px, 100%);
+				border-radius: 24px;
+				background: #ffffff;
+				padding: clamp(28px, 6vw, 40px);
+				box-shadow: var(--shadow-lg);
+				text-align: center;
+			}
+
+			.banner__panel h3 {
+				margin: 0 0 12px;
+				color: var(--danger-500);
+				font-size: 1.4rem;
+			}
+
+			.banner__panel p {
+				margin: 0 0 24px;
+				color: var(--text-700);
+				line-height: 1.6;
+			}
+
+			.button-secondary {
+				color: var(--brand-600);
+				background: rgba(0, 102, 179, 0.12);
+			}
+
+			.button-secondary:hover {
+				transform: translateY(-2px);
+			}
+
+			@media (max-width: 960px) {
+				.hero__surface {
+					border-radius: 32px;
+				}
+
+				.survey__form {
+					padding: clamp(24px, 5vw, 36px);
+					border-radius: 28px;
+				}
+			}
+
+			@media (max-width: 720px) {
+				.hero__surface {
+					min-height: 520px;
+				}
+
+				.hero__content {
+					padding: clamp(28px, 8vw, 48px);
+				}
+
+				.hero__invitation {
+					grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+				}
+
+				.survey {
+					padding-inline: clamp(12px, 4vw, 24px);
+				}
+
+				.question-card {
+					padding: clamp(20px, 6vw, 28px);
+				}
+
+				.scale-grid {
+					grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+				}
+
+				.mood-grid {
+					grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+				}
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				*,
+				*::before,
+				*::after {
+					transition: none !important;
+					animation-duration: 0.01ms !important;
+					animation-iteration-count: 1 !important;
+					scroll-behavior: auto !important;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="page">
+			<section class="hero" id="introScreen" aria-labelledby="heroTitle">
+				<div class="hero__surface">
+					<div class="hero__overlay" aria-hidden="true"></div>
+					<div class="hero__content">
+						<img
+							class="hero__logo"
+							src="LOGO-POSITIVO-TECNOLOG[IA]-tagline 1.png"
+							alt="Positivo Tecnologia"
+						/>
+						<span class="hero__eyebrow">Pesquisa de satisfação</span>
+						<h1 class="hero__title" id="heroTitle">Queremos ouvir como foi sua experiência</h1>
+						<p class="hero__copy">Oi, tudo bem? Eu sou o Pedro, assistente virtual da Positivo! 😊</p>
+						<p class="hero__copy">
+							Percebi que você recebeu um atendimento na nossa assistência recentemente. Gostaríamos muito de saber
+							como foi sua jornada com a gente.
+						</p>
+						<p class="hero__copy hero__copy--highlight">
+							Sua opinião é fundamental para continuarmos evoluindo. Vamos começar?
+						</p>
+						<div class="hero__cta">
+							<button class="button button-primary" id="startSurveyBtn" type="button">
+								Iniciar pesquisa
+							</button>
+							<div class="hero__invitation" id="invitationPanel" hidden>
+								<div class="hero__info">
+									<span class="hero__info-label">Chamado</span>
+									<span class="hero__info-value" id="invitationCall">—</span>
+								</div>
+								<div class="hero__info">
+									<span class="hero__info-label">Encerrado em</span>
+									<span class="hero__info-value" id="invitationDate">—</span>
+								</div>
+								<div class="hero__info">
+									<span class="hero__info-label">Equipamento</span>
+									<span class="hero__info-value" id="invitationDescription">—</span>
+								</div>
+							</div>
+							<p class="hero__hint" id="invitationMeta" aria-live="polite"></p>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<main class="survey" id="surveyContainer" aria-live="polite" aria-hidden="true">
+				<form class="survey__form" id="surveyForm" novalidate>
+					<header class="survey-hero">
+						<span class="survey-hero__eyebrow">Sua opinião importa</span>
+						<h2>Vamos juntos melhorar a sua próxima experiência</h2>
+						<p>
+							O formulário é rápido e direto. Cada resposta nos ajuda a conhecer melhor o seu atendimento e a aperfeiçoar
+							o que entregamos.
+						</p>
+					</header>
+
+					<section class="survey__questions">
+						<article class="question-card" id="block-problem">
+							<div class="question-card__header">
+								<span class="question-card__icon" aria-hidden="true">🛠️</span>
+								<div>
+									<h3>Resolução do problema</h3>
+									<p>Conseguimos solucionar o motivo que originou seu atendimento?</p>
+								</div>
+							</div>
+							<div
+								class="choice-pills"
+								role="radiogroup"
+								aria-label="Resolução do problema"
+								data-behavior="toggle-active"
+								data-layout="split"
+							>
+								<label class="pill" data-value="Sim">
+									<input type="radio" name="problemSolved" value="Sim" required />
+									<span>Sim</span>
+								</label>
+								<label class="pill" data-value="Não">
+									<input type="radio" name="problemSolved" value="Não" />
+									<span>Não</span>
+								</label>
+							</div>
+						</article>
+						<div class="question-gap" aria-hidden="true"></div>
+
+						<article class="question-card question-card--accent" id="block-recommendation">
+							<div class="question-card__header">
+								<span class="question-card__icon" aria-hidden="true">⭐</span>
+								<div>
+									<h3>Recomendação</h3>
+									<p>
+										Com base na experiência recente com a nossa Assistência Técnica, qual é a probabilidade de você recomendar
+										nosso serviço a um amigo ou familiar?
+									</p>
+								</div>
+							</div>
+							<p class="scale-hint">10 = Extremamente provável | 0 = Nada provável</p>
+							<div
+								class="scale-grid"
+								role="radiogroup"
+								aria-label="Recomendação"
+								data-choice="recommendation"
+								data-behavior="toggle-active"
+							></div>
+							<div class="scale-legend">
+								<span>Nada provável</span>
+								<span>Extremamente provável</span>
+							</div>
+					</article>
+					<div class="question-gap" aria-hidden="true"></div>
+
+					<article class="question-card" id="block-reason">
+						<div class="question-card__header">
+							<span class="question-card__icon" aria-hidden="true">💡</span>
+							<div>
+								<h3>Motivo da nota</h3>
+								<p>Qual o principal motivo para sua nota?</p>
+							</div>
+						</div>
+						<div class="reasons-grid" id="reasonsGrid" role="radiogroup" aria-label="Motivos da nota" data-behavior="toggle-active">
+							<label class="reason-pill" data-value="Cordialidade no atendimento">
+								<input type="radio" name="reason" value="Cordialidade no atendimento" />
+								<span>Cordialidade no atendimento</span>
+							</label>
+							<label class="reason-pill" data-value="Tempo de reparo">
+								<input type="radio" name="reason" value="Tempo de reparo" />
+								<span>Tempo de reparo</span>
+							</label>
+							<label class="reason-pill" data-value="Clareza e eficiência">
+								<input type="radio" name="reason" value="Clareza e eficiência" />
+								<span>Clareza e eficiência</span>
+							</label>
+							<label class="reason-pill" data-value="Qualidade do serviço">
+								<input type="radio" name="reason" value="Qualidade do serviço" />
+								<span>Qualidade do serviço</span>
+							</label>
+							<label class="reason-pill" data-value="Outro">
+								<input type="radio" name="reason" value="Outro" id="reasonOther" />
+								<span>Outro</span>
+							</label>
+						</div>
+					</article>
+					<div class="question-gap" aria-hidden="true"></div>						<article class="question-card" id="block-satisfaction">
+							<div class="question-card__header">
+								<span class="question-card__icon" aria-hidden="true">🌟</span>
+								<div>
+									<h3>Satisfação geral</h3>
+									<p>No geral, como você avalia a experiência com nossa equipe?</p>
+								</div>
+							</div>
+							<div class="mood-grid" role="radiogroup" aria-label="Satisfação geral" data-behavior="toggle-active">
+								<label class="mood-card" data-value="1">
+									<input type="radio" name="generalSatisfaction" value="1" required />
+									<strong>😡</strong>
+									<span>Muito insatisfeito</span>
+								</label>
+								<label class="mood-card" data-value="2">
+									<input type="radio" name="generalSatisfaction" value="2" />
+									<strong>😕</strong>
+									<span>Insatisfeito</span>
+								</label>
+								<label class="mood-card" data-value="3">
+									<input type="radio" name="generalSatisfaction" value="3" />
+									<strong>😐</strong>
+									<span>Neutro</span>
+								</label>
+								<label class="mood-card" data-value="4">
+									<input type="radio" name="generalSatisfaction" value="4" />
+									<strong>🙂</strong>
+									<span>Satisfeito</span>
+								</label>
+								<label class="mood-card" data-value="5">
+									<input type="radio" name="generalSatisfaction" value="5" />
+									<strong>🤩</strong>
+									<span>Muito satisfeito</span>
+								</label>
+							</div>
+						</article>
+						<div class="question-gap" aria-hidden="true"></div>
+
+						<article class="question-card question-card--accent" id="block-product">
+							<div class="question-card__header">
+								<span class="question-card__icon" aria-hidden="true">💻</span>
+								<div>
+									<h3>Avaliação do Produto</h3>
+									<p>Agora que você avaliou nossa assistência técnica Positivo, como avaliaria o produto <strong id="productName">Notebook Positivo</strong>?</p>
+								</div>
+							</div>
+							<p class="scale-hint">10 = Extremamente provável | 0 = Nada provável</p>
+							<div
+								class="scale-grid"
+								role="radiogroup"
+								aria-label="Avaliação do produto"
+								data-choice="productScore"
+								data-behavior="toggle-active"
+							></div>
+							<div class="scale-legend">
+								<span>Nada provável</span>
+								<span>Ext. provável</span>
+							</div>
+						</article>
+						<div class="question-gap" aria-hidden="true"></div>
+
+						<article class="question-card text-area" id="block-message">
+							<div class="question-card__header">
+								<span class="question-card__icon" aria-hidden="true">💬</span>
+								<div>
+									<h3>Mensagem final</h3>
+									<p>Se quiser, deixe um recado para sugerir melhorias, elogiar ou comentar algo específico.</p>
+								</div>
+							</div>
+							<textarea
+								id="finalMessage"
+								name="finalMessage"
+								maxlength="1000"
+								placeholder="Digite sua mensagem aqui (opcional)"
+							></textarea>
+						</article>
+					</section>
+
+					<div class="submit-area">
+						<button class="button button-primary" type="submit" id="submitBtn">Enviar respostas</button>
+						<small>Suas respostas são vinculadas automaticamente ao seu convite validado.</small>
+					</div>
+
+					<div class="success-panel" id="successPanel" role="status" aria-live="polite">
+						<strong>Obrigado por compartilhar sua experiência! 🎉</strong>
+						<span>Registramos suas respostas com sucesso.</span>
+					</div>
+				</form>
+			</main>
+		</div>
+
+		<div class="banner" id="tamperBanner" role="alertdialog" aria-modal="true" aria-labelledby="tamperTitle">
+			<div class="banner__panel">
+				<h3 id="tamperTitle">Link inválido ou alterado</h3>
+				<p id="tamperMessage">
+					Não conseguimos validar este acesso. Utilize o endereço original recebido no seu convite de pesquisa.
+				</p>
+				<button class="button button-secondary" type="button" id="tamperDismiss">Fechar</button>
+			</div>
+		</div>
+
+		<script>
+			const TOKEN_PARAM = "token";
+			const STATE = {
+				initialSearch: window.location.search,
+				invite: null,
+				tamperDetected: false,
+			};
+
+			const SCALE_COLORS = [
+				{ bg: "#E45C5C", ink: "#ffffff" },
+				{ bg: "#EA7070", ink: "#ffffff" },
+				{ bg: "#EA8B8B", ink: "#ffffff" },
+				{ bg: "#ECA0A0", ink: "#ffffff" },
+				{ bg: "#F2BFBF", ink: "#7f1d1d" },
+				{ bg: "#FFFFFF", ink: "#004d8c" },
+				{ bg: "#C8E9E5", ink: "#064e3b" },
+				{ bg: "#A4E0D6", ink: "#054f3d" },
+				{ bg: "#7ED1C2", ink: "#053328" },
+				{ bg: "#57CBB2", ink: "#032a20" },
+				{ bg: "#3BBFA3", ink: "#03261d" },
+			];
+
+			const elements = {
+				startButton: document.getElementById("startSurveyBtn"),
+				surveyContainer: document.getElementById("surveyContainer"),
+				surveyForm: document.getElementById("surveyForm"),
+				submitBtn: document.getElementById("submitBtn"),
+				successPanel: document.getElementById("successPanel"),
+				tamperBanner: document.getElementById("tamperBanner"),
+				tamperMessage: document.getElementById("tamperMessage"),
+				tamperDismiss: document.getElementById("tamperDismiss"),
+				invitationMeta: document.getElementById("invitationMeta"),
+				invitationPanel: document.getElementById("invitationPanel"),
+				invitationCall: document.getElementById("invitationCall"),
+				invitationDate: document.getElementById("invitationDate"),
+				invitationDescription: document.getElementById("invitationDescription"),
+				reasonsGrid: document.getElementById("reasonsGrid"),
+			};
+
+			function computePseudoHash(data) {
+				let acc = 0;
+				for (let i = 0; i < data.length; i += 1) {
+					acc = (acc + data.charCodeAt(i) * 17) % 100000;
+				}
+				return acc.toString().padStart(5, "0");
+			}
+
+					function decodeBase64(base64String) {
+						const binary = atob(base64String);
+						if (typeof TextDecoder === "function") {
+							const bytes = new Uint8Array(binary.length);
+							for (let i = 0; i < binary.length; i += 1) {
+								bytes[i] = binary.charCodeAt(i);
+							}
+							const decoder = new TextDecoder();
+							return decoder.decode(bytes);
+						}
+						// Fallback para navegadores sem TextDecoder
+						let result = "";
+						for (let i = 0; i < binary.length; i += 1) {
+							result += `%${(`00${binary.charCodeAt(i).toString(16)}`).slice(-2)}`;
+						}
+						return decodeURIComponent(result);
+			}
+
+			function parseInviteFromToken(token) {
+				if (!token) {
+					throw new Error("Token ausente na URL.");
+				}
+
+				let decoded;
+				try {
+					decoded = decodeBase64(token);
+				} catch (error) {
+					throw new Error("Token não está em Base64 válido.");
+				}
+
+				if (decoded.length < 24) {
+					throw new Error("Token com comprimento insuficiente.");
+				}
+
+				const pseudoHash = decoded.slice(0, 5);
+				const chamado = decoded.slice(5, 16);
+				const rawDate = decoded.slice(16, 24);
+				const description = decoded.slice(24).trim();
+				const dataSegment = decoded.slice(5);
+
+				if (!/^\d{5}$/.test(pseudoHash)) {
+					throw new Error("Hash de verificação inválido.");
+				}
+
+				if (!/^\d{11}$/.test(chamado)) {
+					throw new Error("Número de chamado inválido.");
+				}
+
+				if (!/^\d{8}$/.test(rawDate)) {
+					throw new Error("Data inválida no token.");
+				}
+
+				const expectedHash = computePseudoHash(dataSegment);
+				if (expectedHash !== pseudoHash) {
+					throw new Error("Token alterado ou corrompido.");
+				}
+
+				const day = rawDate.slice(0, 2);
+				const month = rawDate.slice(2, 4);
+				const year = rawDate.slice(4, 8);
+				const formattedDate = `${day}/${month}/${year}`;
+
+				if (Number(day) < 1 || Number(day) > 31 || Number(month) < 1 || Number(month) > 12) {
+					throw new Error("Data fora do intervalo esperado.");
+				}
+
+				return {
+					pseudoHash,
+					chamado,
+					date: formattedDate,
+					rawDate,
+					description: description || "Equipamento não informado",
+					token,
+				};
+			}
+
+			function flagTampering(message) {
+				if (STATE.tamperDetected) {
+					return;
+				}
+				STATE.tamperDetected = true;
+				elements.startButton.disabled = true;
+				elements.submitBtn.disabled = true;
+				elements.tamperMessage.textContent = message;
+				elements.tamperBanner.classList.add("is-visible");
+			}
+
+			function initializeScales() {
+				const scaleConfigs = [
+					{ selector: '[data-choice="recommendation"]', name: "recommendation" },
+					{ selector: '[data-choice="productScore"]', name: "productScore" },
+				];
+
+				scaleConfigs.forEach((config) => {
+					const container = document.querySelector(config.selector);
+					if (!container) {
+						return;
+					}
+					for (let value = 0; value <= 10; value += 1) {
+						const label = document.createElement("label");
+						label.className = "scale-item";
+						label.dataset.value = String(value);
+						const palette = SCALE_COLORS[value] || SCALE_COLORS[SCALE_COLORS.length - 1];
+						label.style.setProperty("--tone", palette.bg);
+						label.style.setProperty("--tone-ink", palette.ink);
+
+						const input = document.createElement("input");
+						input.type = "radio";
+						input.name = config.name;
+						input.value = String(value);
+						input.required = true;
+
+						const number = document.createElement("strong");
+						number.textContent = value;
+
+						label.append(input, number);
+
+						container.append(label);
+					}
+				});
+			}
+
+			function registerSelectionStates() {
+				const groups = document.querySelectorAll('[data-behavior="toggle-active"]');
+				groups.forEach((group) => {
+					const activeClass = group.dataset.activeClass || "is-active";
+
+					group.querySelectorAll("input[type='radio']").forEach((input) => {
+						const refresh = () => {
+							const name = input.name;
+							group.querySelectorAll(`input[name='${name}']`).forEach((radio) => {
+								const parent = radio.closest("label");
+								if (parent) {
+									parent.classList.toggle(activeClass, radio.checked);
+								}
+							});
+						};
+						input.addEventListener("change", refresh);
+						refresh();
+					});
+
+					group.querySelectorAll("input[type='checkbox']").forEach((input) => {
+						const parent = input.closest("label");
+						if (parent) {
+							parent.classList.toggle(activeClass, input.checked);
+						}
+						input.addEventListener("change", () => {
+							const current = input.closest("label");
+							if (current) {
+								current.classList.toggle(activeClass, input.checked);
+							}
+						});
+					});
+				});
+			}
+
+			function monitorUrlChanges() {
+				const detectMismatch = () => {
+					if (STATE.tamperDetected) {
+						return;
+					}
+					if (window.location.search !== STATE.initialSearch) {
+						flagTampering("Detectamos alterações na URL. Abra o link original para continuar.");
+					}
+				};
+
+				window.addEventListener("popstate", detectMismatch);
+				window.addEventListener("hashchange", detectMismatch);
+				setInterval(detectMismatch, 1500);
+			}
+
+			function handleStart() {
+				if (!STATE.invite) {
+					flagTampering("Não foi possível validar seu convite. Solicite um novo link.");
+					return;
+				}
+				elements.surveyContainer.classList.add("is-visible");
+				elements.surveyContainer.setAttribute("aria-hidden", "false");
+				elements.startButton.disabled = true;
+				setTimeout(() => {
+					document.getElementById("block-problem")?.scrollIntoView({ behavior: "smooth", block: "start" });
+				}, 120);
+			}
+
+		function prepareSubmission() {
+			elements.surveyForm.addEventListener("submit", async (event) => {
+				event.preventDefault();
+			const formData = new FormData(elements.surveyForm);
+			const payload = {
+				chamado: STATE.invite.chamado,
+				tipo_equipamento: STATE.invite.description,
+				data_chamado: STATE.invite.date,
+				problema_solucionado: formData.get("problemSolved"),
+				recomendar_servico: formData.get("recommendation"),
+				motivo_nota: formData.get("reason"),
+				nota_atp: formData.get("generalSatisfaction"),
+				avaliacao_produto: formData.get("productScore"),
+				coment_adicional: formData.get("finalMessage") || "",
+			};
+
+			console.info("Pesquisa enviada", payload);				// Enviar para o webhook
+				try {
+					const webhookUrl = "https://defaultfbcbd4a1cffc4c50b5a8611abdfe17.8c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/59e7fec0bf1b498e9f04f3aa6df91028/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qCpsDEm6BT2RfgKLIlpQAThpPyWRMTjHFVQV6uSRqr8";
+					const response = await fetch(webhookUrl, {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify(payload),
+					});
+
+					if (!response.ok) {
+						throw new Error(`Erro HTTP: ${response.status}`);
+					}
+
+					console.info("Dados enviados com sucesso para o webhook");
+				} catch (error) {
+					console.error("Erro ao enviar para o webhook:", error);
+					// Continua exibindo sucesso para o usuário mesmo se houver erro
+				}
+
+				elements.successPanel.style.display = "block";
+				elements.submitBtn.disabled = true;
+				elements.surveyForm.querySelectorAll("input, textarea, button").forEach((field) => {
+					field.setAttribute("disabled", "true");
+				});
+			});
+		}			function updateInviteUi(invite) {
+				elements.invitationCall.textContent = invite.chamado;
+				elements.invitationDate.textContent = invite.date;
+				elements.invitationDescription.textContent = invite.description;
+				elements.invitationPanel.hidden = false;
+				elements.invitationMeta.textContent = "Convite validado com sucesso.";
+				
+				// Atualizar nome do produto no bloco de avaliação
+				const productNameElement = document.getElementById("productName");
+				if (productNameElement) {
+					productNameElement.textContent = invite.description;
+				}
+			}
+
+			function init() {
+				elements.startButton.disabled = true;
+				elements.invitationMeta.textContent = "Validando link, aguarde um instante...";
+
+				initializeScales();
+				registerSelectionStates();
+				monitorUrlChanges();
+				prepareSubmission();
+
+				try {
+					const params = new URLSearchParams(window.location.search);
+					const token = params.get(TOKEN_PARAM);
+					const invite = parseInviteFromToken(token);
+					STATE.invite = invite;
+					STATE.initialSearch = window.location.search;
+					updateInviteUi(invite);
+					elements.startButton.disabled = false;
+				} catch (error) {
+					console.warn(error);
+					flagTampering(error.message || "Link inválido.");
+				}
+
+				elements.startButton.addEventListener("click", handleStart);
+				elements.tamperDismiss.addEventListener("click", () => {
+					elements.tamperBanner.classList.remove("is-visible");
+				});
+			}
+
+			document.addEventListener("DOMContentLoaded", init);
+		</script>
+	</body>
+</html>

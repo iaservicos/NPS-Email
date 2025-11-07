@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gerador de Token da Pesquisa</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+        --bg: #f5f6fa;
+        --card: #ffffff;
+        --brand: #0066b3;
+        --brand-dark: #004d8c;
+        --danger: #e45c5c;
+        --text: #1f2933;
+        --muted: #64748b;
+        --border: #dbeafe;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 16px;
+        color: var(--text);
+      }
+
+      .card {
+        width: min(640px, 100%);
+        padding: 36px clamp(24px, 6vw, 40px);
+        border-radius: 24px;
+        background: var(--card);
+        box-shadow: 0 30px 60px rgba(0, 80, 140, 0.12);
+        display: grid;
+        gap: 24px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+        font-weight: 700;
+        color: var(--brand-dark);
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      form {
+        display: grid;
+        gap: 18px;
+      }
+
+      label {
+        font-weight: 600;
+        margin-bottom: 6px;
+        display: inline-block;
+      }
+
+      input,
+      textarea,
+      button {
+        font-family: inherit;
+        font-size: 1rem;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 102, 179, 0.25);
+        background: #f8fbff;
+        transition: border 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+
+      input:focus,
+      textarea:focus {
+        outline: none;
+        border-color: rgba(0, 77, 140, 0.65);
+        box-shadow: 0 0 0 4px rgba(0, 102, 179, 0.18);
+        background: #ffffff;
+      }
+
+      button {
+        border: none;
+        border-radius: 999px;
+        padding: 14px 26px;
+        font-weight: 600;
+        color: #ffffff;
+        background: linear-gradient(102deg, var(--brand) 0%, var(--brand-dark) 100%);
+        cursor: pointer;
+        transition: transform 150ms ease, box-shadow 150ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 28px rgba(0, 77, 140, 0.2);
+      }
+
+      .output {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px dashed rgba(0, 102, 179, 0.35);
+        background: rgba(219, 234, 254, 0.3);
+        font-family: "Fira Code", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        word-break: break-all;
+      }
+
+      .output strong {
+        color: var(--brand-dark);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .error {
+        color: var(--danger);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <header>
+        <h1>Gerador de token da pesquisa</h1>
+        <p>Informe os dados do atendimento para obter o valor em Base64 que será anexado ao link como parâmetro <code>token</code>.</p>
+      </header>
+      <form id="tokenForm" novalidate>
+        <div>
+          <label for="callNumber">Número do chamado (11 dígitos)</label>
+          <input id="callNumber" name="callNumber" type="text" inputmode="numeric" maxlength="11" required placeholder="Ex.: 12345678901" />
+        </div>
+        <div>
+          <label for="date">Data de encerramento</label>
+          <input id="date" name="date" type="date" required />
+        </div>
+        <div>
+          <label for="description">Descrição do equipamento</label>
+          <textarea id="description" name="description" rows="3" maxlength="160" placeholder="Notebook Positivo Motion (S/N 123456)"></textarea>
+        </div>
+        <button type="submit">Gerar token</button>
+        <p class="error hidden" id="errorMessage"></p>
+      </form>
+      <section id="result" class="output hidden" aria-live="polite">
+        <div>
+          <strong>Sequência original:</strong>
+          <span id="sequence"></span>
+        </div>
+        <div>
+          <strong>Token Base64:</strong>
+          <span id="token"></span>
+        </div>
+        <div>
+          <strong>URL completa:</strong>
+          <span id="url"></span>
+        </div>
+      </section>
+    </div>
+    <script>
+      const FORM = document.getElementById("tokenForm");
+      const ERROR = document.getElementById("errorMessage");
+      const RESULT = document.getElementById("result");
+      const SEQUENCE = document.getElementById("sequence");
+      const TOKEN = document.getElementById("token");
+      const URL_FIELD = document.getElementById("url");
+
+      function computePseudoHash(data) {
+        let acc = 0;
+        for (let i = 0; i < data.length; i += 1) {
+          acc = (acc + data.charCodeAt(i) * 17) % 100000;
+        }
+        return acc.toString().padStart(5, "0");
+      }
+
+      function toBase64(text) {
+        if (typeof btoa === "function") {
+          const encoder = new TextEncoder();
+          const bytes = encoder.encode(text);
+          let binary = "";
+          bytes.forEach((byte) => {
+            binary += String.fromCharCode(byte);
+          });
+          return btoa(binary);
+        }
+        // Fallback simples para ambientes sem btoa
+        const base64Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+        let output = "";
+        let i = 0;
+        while (i < text.length) {
+          const chr1 = text.charCodeAt(i++);
+          const chr2 = text.charCodeAt(i++);
+          const chr3 = text.charCodeAt(i++);
+          const enc1 = chr1 >> 2;
+          const enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+          const enc3 = Number.isNaN(chr2) ? 64 : ((chr2 & 15) << 2) | (chr3 >> 6);
+          const enc4 = Number.isNaN(chr3) ? 64 : chr3 & 63;
+          output +=
+            base64Alphabet.charAt(enc1) +
+            base64Alphabet.charAt(enc2) +
+            base64Alphabet.charAt(enc3) +
+            base64Alphabet.charAt(enc4);
+        }
+        return output;
+      }
+
+      function formatDateToDigits(dateValue) {
+        const date = new Date(dateValue);
+        if (Number.isNaN(date.getTime())) {
+          throw new Error("Data inválida.");
+        }
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const year = String(date.getFullYear());
+        return { raw: `${day}${month}${year}`, formatted: `${day}/${month}/${year}` };
+      }
+
+      function validateCallNumber(value) {
+        const normalized = value.replace(/\D+/g, "");
+        if (normalized.length !== 11) {
+          throw new Error("O chamado deve conter exatamente 11 dígitos.");
+        }
+        return normalized;
+      }
+
+      FORM.addEventListener("submit", (event) => {
+        event.preventDefault();
+        ERROR.classList.add("hidden");
+        RESULT.classList.add("hidden");
+
+        try {
+          const callNumber = validateCallNumber(FORM.callNumber.value);
+          const { raw: rawDate, formatted: readableDate } = formatDateToDigits(FORM.date.value);
+          const description = (FORM.description.value || "Equipamento não informado").trim();
+          const tail = `${callNumber}${rawDate}${description}`;
+          const pseudoHash = computePseudoHash(tail);
+          const sequence = `${pseudoHash}${tail}`;
+          const token = toBase64(sequence);
+          const url = `${window.location.origin}/index.html?token=${encodeURIComponent(token)}`;
+
+          SEQUENCE.textContent = sequence;
+          TOKEN.textContent = token;
+          URL_FIELD.textContent = url;
+
+          RESULT.classList.remove("hidden");
+        } catch (error) {
+          ERROR.textContent = error.message || "Não foi possível gerar o token.";
+          ERROR.classList.remove("hidden");
+        }
+      });
+    </script>
+  </body>
+</html>
