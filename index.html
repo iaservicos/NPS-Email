@@ -638,6 +638,152 @@
 				line-height: 1.6;
 			}
 
+			.thanks-overlay {
+				position: fixed;
+				inset: 0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 24px;
+				background: linear-gradient(135deg, #0066b3 0%, #004d8c 100%);
+				opacity: 0;
+				visibility: hidden;
+				transition: opacity 400ms ease;
+				z-index: 50;
+			}
+
+			.thanks-overlay.is-visible {
+				opacity: 1;
+				visibility: visible;
+			}
+
+			.thanks-content {
+				width: min(680px, 100%);
+				text-align: center;
+				color: #ffffff;
+				transform: translateY(40px);
+				transition: transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+			}
+
+			.thanks-overlay.is-visible .thanks-content {
+				transform: translateY(0);
+			}
+
+			.thanks-icon {
+				font-size: clamp(4rem, 12vw, 6rem);
+				margin-bottom: clamp(20px, 4vw, 32px);
+				animation: popIn 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 200ms both;
+			}
+
+			@keyframes popIn {
+				from {
+					transform: scale(0);
+					opacity: 0;
+				}
+				to {
+					transform: scale(1);
+					opacity: 1;
+				}
+			}
+
+			.thanks-content h2 {
+				margin: 0 0 clamp(16px, 3vw, 24px);
+				font-size: clamp(2rem, 5vw, 3.2rem);
+				font-weight: 700;
+				line-height: 1.1;
+			}
+
+			.thanks-content p {
+				margin: 0 auto clamp(24px, 5vw, 40px);
+				max-width: 520px;
+				font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+				line-height: 1.6;
+				color: rgba(255, 255, 255, 0.92);
+			}
+
+			.thanks-details {
+				display: inline-flex;
+				flex-direction: column;
+				gap: 10px;
+				padding: clamp(18px, 4vw, 28px) clamp(28px, 6vw, 48px);
+				border-radius: 20px;
+				background: rgba(255, 255, 255, 0.15);
+				backdrop-filter: blur(10px);
+				border: 1px solid rgba(255, 255, 255, 0.25);
+				text-align: left;
+				margin-bottom: clamp(28px, 5vw, 40px);
+			}
+
+			.thanks-detail-row {
+				display: flex;
+				gap: 12px;
+				align-items: center;
+				font-size: 0.95rem;
+			}
+
+			.thanks-detail-row strong {
+				font-weight: 600;
+				min-width: 90px;
+				color: rgba(255, 255, 255, 0.8);
+			}
+
+			.thanks-detail-row span {
+				color: #ffffff;
+				font-weight: 500;
+			}
+
+			.thanks-footer {
+				font-size: 0.9rem;
+				color: rgba(255, 255, 255, 0.7);
+			}
+
+			.textarea-wrapper {
+				position: relative;
+			}
+
+			.mic-button {
+				position: absolute;
+				right: 12px;
+				bottom: 12px;
+				width: 44px;
+				height: 44px;
+				border: none;
+				border-radius: 12px;
+				background: var(--brand-500);
+				color: white;
+				font-size: 1.3rem;
+				cursor: pointer;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				transition: all 200ms ease;
+				box-shadow: 0 4px 12px rgba(0, 102, 179, 0.25);
+			}
+
+			.mic-button:hover:not(:disabled) {
+				background: var(--brand-600);
+				transform: scale(1.05);
+			}
+
+			.mic-button:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
+
+			.mic-button.is-recording {
+				background: var(--danger-500);
+				animation: pulse 1.5s ease-in-out infinite;
+			}
+
+			@keyframes pulse {
+				0%, 100% {
+					box-shadow: 0 4px 12px rgba(228, 92, 92, 0.4);
+				}
+				50% {
+					box-shadow: 0 4px 24px rgba(228, 92, 92, 0.7);
+				}
+			}
+
 			.button-secondary {
 				color: var(--brand-600);
 				background: rgba(0, 102, 179, 0.12);
@@ -910,12 +1056,17 @@
 									<p>Se quiser, deixe um recado para sugerir melhorias, elogiar ou comentar algo específico.</p>
 								</div>
 							</div>
-							<textarea
-								id="finalMessage"
-								name="finalMessage"
-								maxlength="1000"
-								placeholder="Digite sua mensagem aqui (opcional)"
-							></textarea>
+							<div class="textarea-wrapper">
+								<textarea
+									id="finalMessage"
+									name="finalMessage"
+									maxlength="1000"
+									placeholder="Digite sua mensagem aqui (opcional)"
+								></textarea>
+								<button type="button" class="mic-button" id="micButton" title="Clique para gravar áudio" aria-label="Gravar áudio">
+									🎤
+								</button>
+							</div>
 						</article>
 					</section>
 
@@ -939,6 +1090,34 @@
 					Não conseguimos validar este acesso. Utilize o endereço original recebido no seu convite de pesquisa.
 				</p>
 				<button class="button button-secondary" type="button" id="tamperDismiss">Fechar</button>
+			</div>
+		</div>
+
+		<div class="thanks-overlay" id="thanksOverlay" role="status" aria-live="polite">
+			<div class="thanks-content">
+				<div class="thanks-icon">🎉</div>
+				<h2>Obrigado por sua participação!</h2>
+				<p>
+					Sua opinião é muito importante para nós e nos ajuda a melhorar continuamente nossos serviços.
+					Registramos todas as suas respostas com sucesso.
+				</p>
+				<div class="thanks-details">
+					<div class="thanks-detail-row">
+						<strong>Chamado:</strong>
+						<span id="thanksCall">—</span>
+					</div>
+					<div class="thanks-detail-row">
+						<strong>Data:</strong>
+						<span id="thanksDate">—</span>
+					</div>
+					<div class="thanks-detail-row">
+						<strong>Status:</strong>
+						<span>✓ Enviado com sucesso</span>
+					</div>
+				</div>
+				<p class="thanks-footer">
+					Você pode fechar esta página agora. Até a próxima! 😊
+				</p>
 			</div>
 		</div>
 
@@ -979,6 +1158,11 @@
 				invitationDate: document.getElementById("invitationDate"),
 				invitationDescription: document.getElementById("invitationDescription"),
 				reasonsGrid: document.getElementById("reasonsGrid"),
+				thanksOverlay: document.getElementById("thanksOverlay"),
+				thanksCall: document.getElementById("thanksCall"),
+				thanksDate: document.getElementById("thanksDate"),
+				finalMessage: document.getElementById("finalMessage"),
+				micButton: document.getElementById("micButton"),
 			};
 
 			function computePseudoHash(data) {
@@ -1210,6 +1394,13 @@
 					// Continua exibindo sucesso para o usuário mesmo se houver erro
 				}
 
+				// Exibir tela de agradecimento
+				setTimeout(() => {
+					elements.thanksCall.textContent = STATE.invite.chamado;
+					elements.thanksDate.textContent = STATE.invite.date;
+					elements.thanksOverlay.classList.add("is-visible");
+				}, 300);
+
 				elements.successPanel.style.display = "block";
 				elements.submitBtn.disabled = true;
 				elements.surveyForm.querySelectorAll("input, textarea, button").forEach((field) => {
@@ -1230,6 +1421,100 @@
 				}
 			}
 
+			function initSpeechRecognition() {
+				// Verificar suporte à Web Speech API
+				const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+				
+				if (!SpeechRecognition) {
+					elements.micButton.disabled = true;
+					elements.micButton.title = "Seu navegador não suporta reconhecimento de voz";
+					console.warn("Web Speech API não suportada neste navegador");
+					return;
+				}
+
+				const recognition = new SpeechRecognition();
+				recognition.lang = "pt-BR";
+				recognition.continuous = true;
+				recognition.interimResults = false;
+				recognition.maxAlternatives = 1;
+
+				let silenceTimer = null;
+
+				let isRecording = false;
+
+				elements.micButton.addEventListener("click", () => {
+					if (isRecording) {
+						if (silenceTimer) clearTimeout(silenceTimer);
+						recognition.stop();
+						return;
+					}
+
+					try {
+						recognition.start();
+						isRecording = true;
+						elements.micButton.classList.add("is-recording");
+						elements.micButton.title = "Clique para parar a gravação";
+						elements.micButton.textContent = "⏹️";
+					} catch (error) {
+						console.error("Erro ao iniciar reconhecimento:", error);
+					}
+				});
+
+				recognition.onresult = (event) => {
+					// Limpar timer anterior
+					if (silenceTimer) clearTimeout(silenceTimer);
+					
+					// Processar todos os resultados
+					let fullTranscript = "";
+					for (let i = 0; i < event.results.length; i++) {
+						fullTranscript += event.results[i][0].transcript + " ";
+					}
+					
+					const currentText = elements.finalMessage.value;
+					
+					// Adicionar o texto transcrito
+					if (currentText && !currentText.endsWith(fullTranscript.trim())) {
+						elements.finalMessage.value = currentText + " " + fullTranscript.trim();
+					} else if (!currentText) {
+						elements.finalMessage.value = fullTranscript.trim();
+					}
+
+					// Limitar ao máximo de caracteres
+					if (elements.finalMessage.value.length > 3500) {
+						elements.finalMessage.value = elements.finalMessage.value.substring(0, 3500);
+					}
+
+					// Iniciar timer de 5 segundos para finalizar após silêncio
+					silenceTimer = setTimeout(() => {
+						if (isRecording) {
+							recognition.stop();
+						}
+					}, 5000);
+				};
+
+				recognition.onend = () => {
+					if (silenceTimer) clearTimeout(silenceTimer);
+					isRecording = false;
+					elements.micButton.classList.remove("is-recording");
+					elements.micButton.title = "Clique para gravar áudio";
+					elements.micButton.textContent = "🎤";
+				};
+
+				recognition.onerror = (event) => {
+					console.error("Erro no reconhecimento de voz:", event.error);
+					isRecording = false;
+					elements.micButton.classList.remove("is-recording");
+					elements.micButton.title = "Clique para gravar áudio";
+					elements.micButton.textContent = "🎤";
+
+					if (event.error === "not-allowed") {
+						alert("Permissão de microfone negada. Por favor, habilite o acesso ao microfone nas configurações do navegador.");
+					} else if (event.error === "no-speech") {
+						alert("Nenhuma fala detectada. Tente novamente.");
+					}
+				};
+			}
+
 			function init() {
 				elements.startButton.disabled = true;
 				elements.invitationMeta.textContent = "Validando link, aguarde um instante...";
@@ -1238,6 +1523,7 @@
 				registerSelectionStates();
 				monitorUrlChanges();
 				prepareSubmission();
+				initSpeechRecognition();
 
 				try {
 					const params = new URLSearchParams(window.location.search);

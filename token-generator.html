@@ -131,6 +131,100 @@
         color: var(--danger);
         font-weight: 600;
       }
+
+      .section-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--border), transparent);
+        margin: 24px 0;
+      }
+
+      .file-upload {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+      }
+
+      .file-upload input[type="file"] {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+      }
+
+      .file-upload-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 24px;
+        border: 2px dashed rgba(0, 102, 179, 0.35);
+        border-radius: 16px;
+        background: rgba(219, 234, 254, 0.2);
+        cursor: pointer;
+        transition: all 160ms ease;
+      }
+
+      .file-upload-label:hover {
+        border-color: var(--brand);
+        background: rgba(219, 234, 254, 0.4);
+      }
+
+      .file-info {
+        margin-top: 12px;
+        padding: 12px;
+        border-radius: 8px;
+        background: rgba(0, 102, 179, 0.08);
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .csv-preview {
+        margin-top: 16px;
+        max-height: 300px;
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+      }
+
+      th, td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+
+      th {
+        background: rgba(0, 102, 179, 0.08);
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+      }
+
+      .success {
+        color: #16a34a;
+        font-weight: 600;
+      }
+
+      .btn-secondary {
+        background: linear-gradient(102deg, var(--muted) 0%, #475569 100%);
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .actions button {
+        flex: 1;
+        min-width: 160px;
+      }
     </style>
   </head>
   <body>
@@ -169,6 +263,34 @@
           <span id="url"></span>
         </div>
       </section>
+
+      <div class="section-divider"></div>
+
+      <header>
+        <h1>Geração em massa (CSV)</h1>
+        <p>Faça upload de um arquivo CSV com as colunas: <code>chamado</code>, <code>data</code> e <code>descricao</code></p>
+      </header>
+
+      <div>
+        <div class="file-upload">
+          <input type="file" id="csvFile" accept=".csv,text/csv" />
+          <label for="csvFile" class="file-upload-label">
+            <span>📁</span>
+            <span>Clique para selecionar arquivo CSV</span>
+          </label>
+        </div>
+        <div id="fileInfo" class="file-info hidden"></div>
+      </div>
+
+      <div id="csvPreview" class="csv-preview hidden"></div>
+
+      <div id="csvActions" class="actions hidden">
+        <button id="generateBulk" type="button">Gerar tokens em massa</button>
+        <button id="downloadResults" type="button" class="btn-secondary hidden">Baixar resultados (CSV)</button>
+      </div>
+
+      <p class="success hidden" id="bulkSuccess"></p>
+      <p class="error hidden" id="csvError"></p>
     </div>
     <script>
       const FORM = document.getElementById("tokenForm");
@@ -260,6 +382,163 @@
           ERROR.textContent = error.message || "Não foi possível gerar o token.";
           ERROR.classList.remove("hidden");
         }
+      });
+
+      // ============ CSV BULK PROCESSING ============
+      const CSV_FILE = document.getElementById("csvFile");
+      const FILE_INFO = document.getElementById("fileInfo");
+      const CSV_PREVIEW = document.getElementById("csvPreview");
+      const CSV_ACTIONS = document.getElementById("csvActions");
+      const GENERATE_BULK = document.getElementById("generateBulk");
+      const DOWNLOAD_RESULTS = document.getElementById("downloadResults");
+      const BULK_SUCCESS = document.getElementById("bulkSuccess");
+      const CSV_ERROR = document.getElementById("csvError");
+
+      let parsedData = [];
+      let generatedResults = [];
+
+      function parseCSV(text) {
+        const lines = text.trim().split(/\r?\n/);
+        if (lines.length < 2) {
+          throw new Error("CSV vazio ou com apenas cabeçalho.");
+        }
+
+        const header = lines[0].split(/[,;]/);
+        const chamadoIdx = header.findIndex(h => /chamado/i.test(h.trim()));
+        const dataIdx = header.findIndex(h => /data/i.test(h.trim()));
+        const descricaoIdx = header.findIndex(h => /descri[cç][aã]o/i.test(h.trim()));
+
+        if (chamadoIdx === -1 || dataIdx === -1) {
+          throw new Error("CSV deve conter colunas 'chamado' e 'data' (descrição é opcional).");
+        }
+
+        const rows = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(/[,;]/);
+          const chamado = (cols[chamadoIdx] || "").trim();
+          const data = (cols[dataIdx] || "").trim();
+          const descricao = descricaoIdx !== -1 ? (cols[descricaoIdx] || "").trim() : "";
+
+          if (chamado && data) {
+            rows.push({ linha: i + 1, chamado, data, descricao });
+          }
+        }
+
+        if (rows.length === 0) {
+          throw new Error("Nenhuma linha válida encontrada no CSV.");
+        }
+
+        return rows;
+      }
+
+      function renderPreview(data) {
+        const preview = data.slice(0, 10);
+        let html = `<table><thead><tr><th>Linha</th><th>Chamado</th><th>Data</th><th>Descrição</th></tr></thead><tbody>`;
+        preview.forEach(row => {
+          html += `<tr><td>${row.linha}</td><td>${row.chamado}</td><td>${row.data}</td><td>${row.descricao || "—"}</td></tr>`;
+        });
+        html += `</tbody></table>`;
+        if (data.length > 10) {
+          html += `<p style="padding:12px; text-align:center; color:var(--muted); font-size:0.9rem;">Mostrando 10 de ${data.length} linhas</p>`;
+        }
+        CSV_PREVIEW.innerHTML = html;
+        CSV_PREVIEW.classList.remove("hidden");
+      }
+
+      function generateTokenFromRow(row) {
+        try {
+          const callNumber = validateCallNumber(row.chamado);
+          const parsedDate = row.data.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+          if (!parsedDate) {
+            throw new Error("Formato de data inválido. Use DD/MM/AAAA ou DD-MM-AAAA.");
+          }
+          const [, day, month, year] = parsedDate;
+          const rawDate = `${day}${month}${year}`;
+          const description = row.descricao || "Equipamento não informado";
+          const tail = `${callNumber}${rawDate}${description}`;
+          const pseudoHash = computePseudoHash(tail);
+          const sequence = `${pseudoHash}${tail}`;
+          const token = toBase64(sequence);
+          const url = `${window.location.origin}/index.html?token=${encodeURIComponent(token)}`;
+
+          return { ...row, token, url, status: "OK", erro: "" };
+        } catch (error) {
+          return { ...row, token: "", url: "", status: "ERRO", erro: error.message };
+        }
+      }
+
+      CSV_FILE.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        CSV_ERROR.classList.add("hidden");
+        BULK_SUCCESS.classList.add("hidden");
+        DOWNLOAD_RESULTS.classList.add("hidden");
+        CSV_PREVIEW.classList.add("hidden");
+        CSV_ACTIONS.classList.add("hidden");
+
+        FILE_INFO.textContent = `Arquivo selecionado: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        FILE_INFO.classList.remove("hidden");
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            parsedData = parseCSV(event.target.result);
+            renderPreview(parsedData);
+            CSV_ACTIONS.classList.remove("hidden");
+          } catch (error) {
+            CSV_ERROR.textContent = `Erro ao processar CSV: ${error.message}`;
+            CSV_ERROR.classList.remove("hidden");
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      GENERATE_BULK.addEventListener("click", () => {
+        BULK_SUCCESS.classList.add("hidden");
+        CSV_ERROR.classList.add("hidden");
+        DOWNLOAD_RESULTS.classList.add("hidden");
+
+        try {
+          generatedResults = parsedData.map(generateTokenFromRow);
+          const successCount = generatedResults.filter(r => r.status === "OK").length;
+          const errorCount = generatedResults.length - successCount;
+
+          BULK_SUCCESS.textContent = `✓ Geração concluída: ${successCount} tokens criados${errorCount > 0 ? `, ${errorCount} erros` : ""}.`;
+          BULK_SUCCESS.classList.remove("hidden");
+          DOWNLOAD_RESULTS.classList.remove("hidden");
+
+          // Atualizar preview com resultados
+          let html = `<table><thead><tr><th>Linha</th><th>Chamado</th><th>Data</th><th>Status</th><th>URL/Erro</th></tr></thead><tbody>`;
+          generatedResults.slice(0, 10).forEach(row => {
+            const statusColor = row.status === "OK" ? "#16a34a" : "#e45c5c";
+            const content = row.status === "OK" ? `<small>${row.url.substring(0, 60)}...</small>` : row.erro;
+            html += `<tr><td>${row.linha}</td><td>${row.chamado}</td><td>${row.data}</td><td style="color:${statusColor};font-weight:600;">${row.status}</td><td>${content}</td></tr>`;
+          });
+          html += `</tbody></table>`;
+          CSV_PREVIEW.innerHTML = html;
+        } catch (error) {
+          CSV_ERROR.textContent = `Erro na geração: ${error.message}`;
+          CSV_ERROR.classList.remove("hidden");
+        }
+      });
+
+      DOWNLOAD_RESULTS.addEventListener("click", () => {
+        let csvContent = "linha,chamado,data,descricao,status,token,url,erro\n";
+        generatedResults.forEach(row => {
+          const escapeCsv = (str) => `"${String(str).replace(/"/g, '""')}"`;
+          csvContent += `${row.linha},${escapeCsv(row.chamado)},${escapeCsv(row.data)},${escapeCsv(row.descricao)},${row.status},${escapeCsv(row.token)},${escapeCsv(row.url)},${escapeCsv(row.erro)}\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `tokens_gerados_${new Date().toISOString().slice(0, 10)}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       });
     </script>
   </body>
