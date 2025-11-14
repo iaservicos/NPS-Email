@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Chat de Atendimento</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+		<style>
+			:root {
+				color-scheme: light only;
+				font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+				--page-bg: #e9f3fc;
+				--brand-500: #0066b3;
+				--brand-600: #004d8c;
+				--text-900: #091c28;
+				--text-500: #666666;
+				--white: #ffffff;
+				--shadow-lg: 0 40px 70px rgba(0, 40, 90, 0.15);
+				--shadow-sm: 0 12px 26px rgba(0, 40, 90, 0.12);
+			}
+
+			html, body {
+				margin: 0;
+				padding: 0;
+				height: 100%;
+				background: var(--page-bg);
+				color: var(--text-900);
+			}
+
+			.page {
+				min-height: 100dvh;
+				display: grid;
+				grid-template-rows: auto 1fr auto;
+			}
+
+			.header {
+				position: sticky;
+				top: 0;
+				z-index: 5;
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				padding: 14px clamp(16px, 4vw, 24px);
+				color: #fff;
+				background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+				box-shadow: var(--shadow-sm);
+			}
+
+			.back-btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 40px;
+				height: 40px;
+				border-radius: 12px;
+				background: rgba(255,255,255,0.16);
+				color: #fff;
+				border: none;
+				cursor: pointer;
+				transition: transform 140ms ease, background 140ms ease;
+			}
+			.back-btn:hover { transform: translateY(-2px); background: rgba(255,255,255,0.22); }
+
+			.title {
+				margin: 0;
+				font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+				font-weight: 600;
+			}
+
+			.token-chip {
+				margin-left: auto;
+				padding: 8px 12px;
+				border-radius: 999px;
+				background: rgba(255,255,255,0.15);
+				border: 1px solid rgba(255,255,255,0.35);
+				font-size: 0.85rem;
+			}
+
+			.wrap {
+				width: min(1080px, 100%);
+				margin: 18px auto;
+				padding: 0 clamp(12px, 4vw, 24px);
+			}
+
+			.card {
+				background: #ffffff;
+				border-radius: 24px;
+				box-shadow: var(--shadow-lg);
+				overflow: hidden;
+			}
+
+			.card__header {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				padding: 16px clamp(16px, 4vw, 24px);
+				border-bottom: 1px solid rgba(0,0,0,0.06);
+			}
+			.card__header h2 { margin: 0; font-size: 1rem; color: var(--text-500); font-weight: 500; }
+
+					.context-banner {
+						margin: 0 clamp(16px, 4vw, 24px) clamp(12px, 3vw, 18px);
+						padding: clamp(12px, 2.2vw, 16px) clamp(14px, 3vw, 20px);
+						background: #f2f7fd;
+						border: 1px solid #d9ebf9;
+						color: var(--text-900);
+						border-radius: 14px;
+					}
+					.context-banner strong { font-weight: 700; }
+
+							.context-actions {
+								display: flex;
+								gap: 10px;
+								align-items: center;
+								margin: 8px clamp(16px, 4vw, 24px) clamp(10px, 3vw, 16px);
+							}
+							.mini-btn {
+								border: none;
+								border-radius: 12px;
+								padding: 10px 14px;
+								font-weight: 600;
+								font-family: inherit;
+								cursor: pointer;
+								background: #e6f0fb;
+								color: var(--text-900);
+								border: 1px solid #cfe2fa;
+								transition: transform 120ms ease, background 120ms ease;
+							}
+							.mini-btn:hover { transform: translateY(-1px); background: #dbe9fa; }
+							.mini-btn.primary { background: linear-gradient(120deg, var(--brand-500), var(--brand-600)); color: #fff; border: none; }
+							.mini-btn.primary:hover { transform: translateY(-1px); opacity: 0.95; }
+
+			.frame {
+				width: 100%;
+				height: clamp(560px, 80vh, 920px);
+				border: none;
+				display: block;
+			}
+
+			.footer {
+				text-align: center;
+				color: var(--text-500);
+				padding: 16px;
+				font-size: 0.9rem;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="page">
+			<header class="header">
+				<button class="back-btn" id="backBtn" title="Voltar" aria-label="Voltar">⬅</button>
+				<h1 class="title">Chat de Atendimento</h1>
+				<span class="token-chip" id="tokenChip" hidden>Convite validado</span>
+			</header>
+
+			<main class="wrap">
+				<div class="card">
+					<div class="card__header">
+						<h2>Converse com nosso assistente</h2>
+					</div>
+								<div class="context-banner" id="contextBanner" hidden>
+									<!-- Conteúdo preenchido via script com dados do token -->
+								</div>
+								<div class="context-actions" id="contextActions" hidden>
+									<button class="mini-btn primary" id="resendBtn" type="button">Reenviar ao chat</button>
+									<button class="mini-btn" id="copyBtn" type="button">Copiar mensagem</button>
+									<span id="contextStatus" style="font-size: .9rem; color: var(--text-500);"></span>
+								</div>
+					<iframe
+						class="frame"
+						src="https://app.gptmaker.ai/widget/3EA0943B1EF833F3512AFA1AA92B217F/iframe"
+						allow="microphone;"
+						title="Assistente de Atendimento">
+					</iframe>
+				</div>
+			</main>
+
+			<footer class="footer">Positivo Tecnologia • Atendimento ao cliente</footer>
+		</div>
+
+		<script>
+			const qs = window.location.search || "";
+			const params = new URLSearchParams(qs);
+			const token = params.get("token");
+
+			const els = {
+				back: document.getElementById('backBtn'),
+				tokenChip: document.getElementById('tokenChip'),
+						context: document.getElementById('contextBanner'),
+						actions: document.getElementById('contextActions'),
+						resend: document.getElementById('resendBtn'),
+						copy: document.getElementById('copyBtn'),
+						status: document.getElementById('contextStatus'),
+						frame: document.querySelector('.frame'),
+			};
+
+			if (token) {
+				els.tokenChip.hidden = false;
+			}
+
+			els.back.addEventListener('click', () => {
+				window.location.href = `index.html${qs}`;
+			});
+
+					// Utilitários para ler o token como na página principal
+					function computePseudoHash(data) {
+						let acc = 0;
+						for (let i = 0; i < data.length; i += 1) {
+							acc = (acc + data.charCodeAt(i) * 17) % 100000;
+						}
+						return acc.toString().padStart(5, '0');
+					}
+
+					function decodeBase64(base64String) {
+						const binary = atob(base64String);
+						if (typeof TextDecoder === 'function') {
+							const bytes = new Uint8Array(binary.length);
+							for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+							return new TextDecoder().decode(bytes);
+						}
+						let result = '';
+						for (let i = 0; i < binary.length; i += 1) {
+							result += `%${(`00${binary.charCodeAt(i).toString(16)}`).slice(-2)}`;
+						}
+						return decodeURIComponent(result);
+					}
+
+					function parseInviteFromToken(t) {
+						const decoded = decodeBase64(t);
+						if (decoded.length < 24) throw new Error('Token curto');
+						const pseudoHash = decoded.slice(0, 5);
+						const chamado = decoded.slice(5, 16);
+						const rawDate = decoded.slice(16, 24);
+						const description = decoded.slice(24).trim();
+						const dataSegment = decoded.slice(5);
+						if (!/^\d{5}$/.test(pseudoHash)) throw new Error('Hash inválido');
+						if (!/^\d{11}$/.test(chamado)) throw new Error('Chamado inválido');
+						if (!/^\d{8}$/.test(rawDate)) throw new Error('Data inválida');
+						const expectedHash = computePseudoHash(dataSegment);
+						if (expectedHash !== pseudoHash) throw new Error('Token alterado');
+						const day = rawDate.slice(0, 2);
+						const month = rawDate.slice(2, 4);
+						const year = rawDate.slice(4, 8);
+						const date = `${day}/${month}/${year}`;
+						return { chamado, date, description: description || 'Equipamento não informado' };
+					}
+
+					// Exibir contexto da pesquisa ao abrir o chat
+					(function showContextFromToken() {
+						if (!token) return;
+						try {
+							const info = parseInviteFromToken(token);
+									const message = `Vamos iniciar a pesquisa de satisfação referente ao chamado ${info.chamado}, encerrado em ${info.date}. Equipamento: ${info.description}.`;
+									els.context.innerHTML = `📝 ${message.replace(info.chamado, `<strong>${info.chamado}</strong>`).replace(info.date, `<strong>${info.date}</strong>`).replace(info.description, `<strong>${info.description}</strong>`)}`;
+							els.context.hidden = false;
+
+									// Tentativa automática de copiar o texto para facilitar colar no campo do chat
+									(async () => {
+										const tryLegacyCopy = (text) => {
+											try {
+												const ta = document.createElement('textarea');
+												ta.value = text;
+												ta.style.position = 'fixed';
+												ta.style.left = '-9999px';
+												document.body.appendChild(ta);
+												ta.focus();
+												ta.select();
+												const ok = document.execCommand('copy');
+												document.body.removeChild(ta);
+												return ok;
+											} catch { return false; }
+										};
+
+										let copied = false;
+										try {
+											if (navigator.clipboard && window.isSecureContext) {
+												await navigator.clipboard.writeText(message);
+												copied = true;
+											}
+										} catch {}
+										if (!copied) copied = tryLegacyCopy(message);
+										if (copied) {
+											els.status.textContent = 'Mensagem copiada. Clique no campo do chat e pressione Ctrl+V (ou ⌘V).';
+										}
+									})();
+
+									// Tentar enviar automaticamente ao widget
+									let attempts = 0;
+									const MAX_ATTEMPTS = 3;
+									let sent = false;
+									let iframeReady = false;
+									const widgetOrigin = 'https://app.gptmaker.ai';
+
+									// Acrescentar parâmetros de contexto na URL do iframe (best-effort)
+												try {
+													const u = new URL(els.frame.src);
+													// Parâmetros comuns aceitos por vários widgets
+													u.searchParams.set('welcome', message);
+													u.searchParams.set('message', message);
+													u.searchParams.set('context', message);
+													// Tentativas específicas para o campo name="affirmation"
+													u.searchParams.set('affirmation', message);
+													// Tentativas genéricas
+													u.searchParams.set('q', message);
+													u.searchParams.set('prefill', message);
+													u.searchParams.set('initial_message', message);
+													// Também via hash (alguns widgets leem o hash)
+													u.hash = `prefill=${encodeURIComponent(message)}`;
+													els.frame.src = u.toString();
+												} catch {}
+
+												function postToWidget(msg) {
+										try {
+											if (!els.frame.contentWindow) return false;
+											// Enviar vários formatos que widgets costumam aceitar
+											els.frame.contentWindow.postMessage({ type: 'user_message', text: msg }, widgetOrigin);
+											els.frame.contentWindow.postMessage({ event: 'prefill', message: msg }, widgetOrigin);
+											els.frame.contentWindow.postMessage({ action: 'send', payload: { role: 'user', content: msg } }, widgetOrigin);
+														// Prefill explícito por seletor/nome
+														els.frame.contentWindow.postMessage({ type: 'prefill_input', selector: 'textarea[name="affirmation"]', value: msg }, widgetOrigin);
+														els.frame.contentWindow.postMessage({ type: 'fill', name: 'affirmation', value: msg }, widgetOrigin);
+														els.frame.contentWindow.postMessage({ cmd: 'prefill', target: 'affirmation', text: msg }, widgetOrigin);
+														// Outra variação
+														els.frame.contentWindow.postMessage({ role: 'system', prefill: msg }, widgetOrigin);
+											els.frame.contentWindow.postMessage(msg, widgetOrigin); // simples string
+											return true;
+										} catch { return false; }
+									}
+
+									function trySend() {
+										if (sent || attempts >= MAX_ATTEMPTS) return;
+										attempts += 1;
+										const ok = postToWidget(message);
+										if (ok) {
+											els.status.textContent = 'Enviando contexto ao assistente...';
+										}
+										// nova tentativa após pequena espera se não houver confirmação
+										setTimeout(() => {
+											if (!sent && attempts < MAX_ATTEMPTS) trySend();
+											if (!sent && attempts >= MAX_ATTEMPTS) {
+												els.actions.hidden = false;
+												els.status.textContent = 'Não foi possível enviar automaticamente. Use os botões abaixo.';
+											}
+										}, 800);
+									}
+
+									// Tentar quando o iframe sinalizar pronto
+									window.addEventListener('message', (ev) => {
+										if (ev.origin !== widgetOrigin) return;
+										// Heurísticas de pronto/ack
+										const d = ev.data || {};
+										if (d.ready || d.type === 'ready' || d.status === 'ok') {
+											iframeReady = true;
+											if (!sent) trySend();
+										}
+										if (d.ack || d.type === 'ack' || d.received) {
+											sent = true;
+											els.status.textContent = 'Contexto enviado.';
+										}
+									});
+
+									// Tentar também ao carregar o iframe
+									els.frame.addEventListener('load', () => {
+										if (!sent) trySend();
+									});
+
+									// Ações manuais
+									els.resend.addEventListener('click', () => {
+										sent = false; attempts = 0; els.status.textContent = '';
+										trySend();
+									});
+									els.copy.addEventListener('click', async () => {
+										try {
+											await navigator.clipboard.writeText(message);
+											els.status.textContent = 'Mensagem copiada. Cole no campo do chat.';
+										} catch {
+											els.status.textContent = 'Não foi possível copiar automaticamente.';
+										}
+									});
+						} catch (e) {
+							// Se não conseguir ler o token, apenas não mostra o banner
+							console.warn('Não foi possível ler os dados do convite no chat:', e);
+						}
+					})();
+		</script>
+	</body>
+	</html>

@@ -646,6 +646,8 @@
 				justify-content: center;
 				padding: 24px;
 				background: linear-gradient(135deg, #0066b3 0%, #004d8c 100%);
+				overflow-y: auto; /* allow scrolling when content exceeds viewport */
+				-webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
 				opacity: 0;
 				visibility: hidden;
 				transition: opacity 400ms ease;
@@ -831,6 +833,13 @@
 
 				.mood-grid {
 					grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+				}
+
+				/* Ensure thank-you overlay is fully usable on small screens */
+				.thanks-overlay {
+					align-items: flex-start; /* start at top so content isn't cropped */
+					padding-top: clamp(24px, 10vh, 56px);
+					padding-bottom: clamp(24px, 6vh, 40px);
 				}
 			}
 
@@ -1375,7 +1384,7 @@
 
 			console.info("Pesquisa enviada", payload);				// Enviar para o webhook
 				try {
-					const webhookUrl = "https://defaultfbcbd4a1cffc4c50b5a8611abdfe17.8c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/59e7fec0bf1b498e9f04f3aa6df91028/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qCpsDEm6BT2RfgKLIlpQAThpPyWRMTjHFVQV6uSRqr8";
+					const webhookUrl = "https://defaultfbcbd4a1cffc4c50b5a8611abdfe17.8c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c0ebbe20aa9142058b4601fdd5d5234b/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=P9bDyg5DsuLGX8qezx-OXZ65hw2YUCbVmAT8hkj_tkw";
 					const response = await fetch(webhookUrl, {
 						method: "POST",
 						headers: {
@@ -1438,18 +1447,32 @@
 				recognition.interimResults = false;
 				recognition.maxAlternatives = 1;
 
-				let silenceTimer = null;
+				// Limite tomado do atributo maxlength do textarea (fallback para 1000)
+				const MAX_MESSAGE_CHARS = (elements.finalMessage && elements.finalMessage.maxLength > 0)
+					? elements.finalMessage.maxLength
+					: 1000;
 
+				let silenceTimer = null;
+				let restartTimer = null;
 				let isRecording = false;
+				let lastTranscript = ""; // snapshot do texto existente quando a sessão começa
+				let shouldAutoRestart = false; // reinicia automaticamente entre pausas curtas
+				let stopReason = null; // 'manual' | 'silence' | 'limit' | null
 
 				elements.micButton.addEventListener("click", () => {
 					if (isRecording) {
 						if (silenceTimer) clearTimeout(silenceTimer);
+						if (restartTimer) clearTimeout(restartTimer);
+						shouldAutoRestart = false;
+						stopReason = 'manual';
 						recognition.stop();
 						return;
 					}
 
 					try {
+						lastTranscript = elements.finalMessage.value;
+						stopReason = null;
+						shouldAutoRestart = true;
 						recognition.start();
 						isRecording = true;
 						elements.micButton.classList.add("is-recording");
@@ -1461,32 +1484,41 @@
 				});
 
 				recognition.onresult = (event) => {
-					// Limpar timer anterior
 					if (silenceTimer) clearTimeout(silenceTimer);
-					
-					// Processar todos os resultados
+
 					let fullTranscript = "";
 					for (let i = 0; i < event.results.length; i++) {
 						fullTranscript += event.results[i][0].transcript + " ";
 					}
-					
-					const currentText = elements.finalMessage.value;
-					
-					// Adicionar o texto transcrito
-					if (currentText && !currentText.endsWith(fullTranscript.trim())) {
-						elements.finalMessage.value = currentText + " " + fullTranscript.trim();
-					} else if (!currentText) {
-						elements.finalMessage.value = fullTranscript.trim();
+					fullTranscript = fullTranscript.trim();
+
+					// Adiciona apenas o novo trecho à mensagem baseado no snapshot do início
+					if (lastTranscript) {
+						if (!fullTranscript.startsWith(lastTranscript)) {
+							elements.finalMessage.value = (lastTranscript + " " + fullTranscript).trim();
+						} else {
+							const newPart = fullTranscript.slice(lastTranscript.length).trim();
+							elements.finalMessage.value = (lastTranscript + (newPart ? " " + newPart : "")).trim();
+						}
+					} else {
+						elements.finalMessage.value = fullTranscript;
 					}
 
-					// Limitar ao máximo de caracteres
-					if (elements.finalMessage.value.length > 3500) {
-						elements.finalMessage.value = elements.finalMessage.value.substring(0, 3500);
+					// Aplicar limite real do campo
+					if (elements.finalMessage.value.length > MAX_MESSAGE_CHARS) {
+						elements.finalMessage.value = elements.finalMessage.value.substring(0, MAX_MESSAGE_CHARS);
+						// Parar por atingir limite e não reiniciar
+						shouldAutoRestart = false;
+						stopReason = 'limit';
+						if (silenceTimer) clearTimeout(silenceTimer);
+						recognition.stop();
+						return;
 					}
 
-					// Iniciar timer de 5 segundos para finalizar após silêncio
+					// Reinicia o temporizador de silêncio (5s) — apenas encerra esta sessão
 					silenceTimer = setTimeout(() => {
 						if (isRecording) {
+							stopReason = 'silence';
 							recognition.stop();
 						}
 					}, 5000);
@@ -1494,7 +1526,34 @@
 
 				recognition.onend = () => {
 					if (silenceTimer) clearTimeout(silenceTimer);
+					if (restartTimer) clearTimeout(restartTimer);
+
+					// Se devemos manter gravando e não foi parada manual/limite/silêncio, reinicia
+					if (shouldAutoRestart && stopReason === null) {
+						// pequena espera para estabilidade
+						restartTimer = setTimeout(() => {
+							try {
+								lastTranscript = elements.finalMessage.value; // novo snapshot
+								stopReason = null;
+								recognition.start();
+								isRecording = true;
+								// manter UI em estado de gravação
+								if (!elements.micButton.classList.contains('is-recording')) {
+									elements.micButton.classList.add('is-recording');
+									elements.micButton.title = 'Clique para parar a gravação';
+									elements.micButton.textContent = '⏹️';
+								}
+							} catch (e) {
+								console.warn('Falha ao reiniciar reconhecimento:', e);
+							}
+						}, 200);
+						return; // não resetar UI
+					}
+
+					// Reset de estado e UI
 					isRecording = false;
+					shouldAutoRestart = false;
+					stopReason = null;
 					elements.micButton.classList.remove("is-recording");
 					elements.micButton.title = "Clique para gravar áudio";
 					elements.micButton.textContent = "🎤";
@@ -1502,16 +1561,40 @@
 
 				recognition.onerror = (event) => {
 					console.error("Erro no reconhecimento de voz:", event.error);
+					if (event.error === "not-allowed") {
+						isRecording = false;
+						shouldAutoRestart = false;
+						elements.micButton.classList.remove("is-recording");
+						elements.micButton.title = "Clique para gravar áudio";
+						elements.micButton.textContent = "🎤";
+						alert("Permissão de microfone negada. Por favor, habilite o acesso ao microfone nas configurações do navegador.");
+						return;
+					}
+
+					// Para 'no-speech' ou falhas intermitentes, tente reiniciar se for para manter gravando
+					if (shouldAutoRestart && (event.error === 'no-speech' || event.error === 'aborted' || event.error === 'network')) {
+						try {
+							lastTranscript = elements.finalMessage.value;
+							stopReason = null;
+							recognition.start();
+							isRecording = true;
+							if (!elements.micButton.classList.contains('is-recording')) {
+								elements.micButton.classList.add('is-recording');
+								elements.micButton.title = 'Clique para parar a gravação';
+								elements.micButton.textContent = '⏹️';
+							}
+							return;
+						} catch (e) {
+							console.warn('Falha ao reiniciar após erro:', e);
+						}
+					}
+
+					// Caso contrário, finalizar UI
 					isRecording = false;
+					shouldAutoRestart = false;
 					elements.micButton.classList.remove("is-recording");
 					elements.micButton.title = "Clique para gravar áudio";
 					elements.micButton.textContent = "🎤";
-
-					if (event.error === "not-allowed") {
-						alert("Permissão de microfone negada. Por favor, habilite o acesso ao microfone nas configurações do navegador.");
-					} else if (event.error === "no-speech") {
-						alert("Nenhuma fala detectada. Tente novamente.");
-					}
 				};
 			}
 
