@@ -337,15 +337,15 @@
 			}
 
 			.question-card h3 {
-				margin: 0 0 6px;
-				font-size: 1.4rem;
+				margin: 0 0 clamp(4px, 1vw, 8px);
+				font-size: clamp(1.2rem, 3vw, 1.5rem);
 				font-weight: 600;
 				color: var(--text-900);
 			}
 
 			.question-card p {
 				margin: 0;
-				font-size: 1rem;
+				font-size: clamp(0.9rem, 2vw, 1.05rem);
 				line-height: 1.6;
 				color: var(--text-500);
 			}
@@ -406,33 +406,31 @@
 						}
 					}
 
-			.scale-grid {
-				display: grid;
-				grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
-				gap: 12px;
-			}
-
-			.scale-item {
+		.scale-grid {
+			display: grid;
+			grid-template-columns: repeat(11, 1fr);
+			gap: clamp(8px, 1.5vw, 14px);
+		}			.scale-item {
 				position: relative;
 				display: flex;
 				flex-direction: column;
 				align-items: center;
 				justify-content: center;
-				padding: 18px 8px;
-				border-radius: 18px;
+				padding: clamp(14px, 3vw, 20px) clamp(6px, 1.5vw, 10px);
+				border-radius: clamp(12px, 2vw, 18px);
 				border: 2px solid rgba(0, 0, 0, 0.04);
 				background: var(--tone, var(--white));
 				color: var(--tone-ink, var(--text-900));
 				font-weight: 700;
-				font-size: 1.2rem;
+				font-size: clamp(1rem, 2.5vw, 1.3rem);
 				text-align: center;
 				cursor: pointer;
 				transition: transform 160ms ease, box-shadow 160ms ease, border 160ms ease;
-				min-height: 86px;
+				min-height: clamp(64px, 14vw, 90px);
 			}
 
 			.scale-item strong {
-				font-size: 1.35rem;
+				font-size: clamp(1.1rem, 2.8vw, 1.5rem);
 				line-height: 1;
 			}
 
@@ -452,8 +450,9 @@
 			.scale-legend {
 				display: flex;
 				justify-content: space-between;
-				font-size: 0.85rem;
+				font-size: clamp(0.75rem, 1.8vw, 0.9rem);
 				color: var(--text-500);
+				gap: clamp(8px, 2vw, 12px);
 			}
 
 			.scale-legend--inline {
@@ -464,7 +463,7 @@
 
 			.scale-hint {
 				margin: 0;
-				font-size: 0.85rem;
+				font-size: clamp(0.75rem, 1.8vw, 0.9rem);
 				color: var(--text-500);
 			}
 
@@ -477,15 +476,17 @@
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			padding: 16px 24px;
-			border-radius: 16px;
+			padding: clamp(12px, 2.5vw, 18px) clamp(16px, 3.5vw, 28px);
+			border-radius: clamp(12px, 2vw, 18px);
 			border: 2px solid rgba(0, 0, 0, 0.04);
 			background: var(--white);
 			color: var(--text-700);
 			font-weight: 600;
+			font-size: clamp(0.9rem, 2vw, 1rem);
 			text-align: center;
 			cursor: pointer;
 			transition: transform 160ms ease, border 160ms ease, background 160ms ease, box-shadow 160ms ease;
+			min-height: 44px;
 		}
 
 		.reason-pill input {
@@ -528,32 +529,31 @@
 				box-shadow: 0 0 0 4px rgba(0, 102, 179, 0.14);
 			}
 
-			.mood-grid {
-				display: grid;
-				grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-				gap: 16px;
-			}
-
-			.mood-card {
+		.mood-grid {
+			display: grid;
+			grid-template-columns: repeat(5, 1fr);
+			gap: clamp(12px, 2.5vw, 18px);
+		}			.mood-card {
 				position: relative;
 				display: grid;
 				place-items: center;
-				gap: 12px;
-				padding: 22px 16px;
-				border-radius: 18px;
+				gap: clamp(8px, 2vw, 14px);
+				padding: clamp(16px, 3.5vw, 26px) clamp(12px, 2.5vw, 18px);
+				border-radius: clamp(14px, 2.5vw, 20px);
 				border: 2px solid transparent;
 				background: rgba(255, 255, 255, 0.88);
 				cursor: pointer;
 				transition: transform 160ms ease, border 160ms ease, box-shadow 160ms ease;
+				min-height: clamp(100px, 18vw, 130px);
 			}
 
 			.mood-card strong {
-				font-size: 2.4rem;
+				font-size: clamp(2rem, 5vw, 3rem);
 				line-height: 1;
 			}
 
 			.mood-card span {
-				font-size: 0.95rem;
+				font-size: clamp(0.8rem, 1.8vw, 1rem);
 				color: var(--text-700);
 			}
 
@@ -808,7 +808,7 @@
 
 			@media (max-width: 720px) {
 				.hero__surface {
-					min-height: 520px;
+					min-height: clamp(420px, 80vw, 560px);
 				}
 
 				.hero__content {
@@ -816,7 +816,8 @@
 				}
 
 				.hero__invitation {
-					grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+					grid-template-columns: 1fr;
+					gap: 12px;
 				}
 
 				.survey {
@@ -828,18 +829,71 @@
 				}
 
 				.scale-grid {
-					grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+					grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+					gap: 6px;
 				}
 
 				.mood-grid {
-					grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+					grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+				}
+
+				.reasons-grid {
+					gap: 10px;
+				}
+
+				.reason-pill {
+					flex: 1 1 100%;
 				}
 
 				/* Ensure thank-you overlay is fully usable on small screens */
 				.thanks-overlay {
-					align-items: flex-start; /* start at top so content isn't cropped */
+					align-items: flex-start;
 					padding-top: clamp(24px, 10vh, 56px);
 					padding-bottom: clamp(24px, 6vh, 40px);
+				}
+			}
+
+			/* Otimizações para telas muito pequenas (< 400px) */
+			@media (max-width: 400px) {
+				.scale-grid {
+					grid-template-columns: repeat(6, 1fr);
+					gap: 4px;
+				}
+
+				.scale-item {
+					padding: 10px 4px;
+					min-height: 56px;
+					font-size: 0.85rem;
+				}
+
+				.mood-grid {
+					grid-template-columns: repeat(2, 1fr);
+				}
+			}
+
+			/* Otimizações para tablets em portrait */
+			@media (min-width: 721px) and (max-width: 1024px) {
+				.scale-grid {
+					grid-template-columns: repeat(11, 1fr);
+				}
+
+				.mood-grid {
+					grid-template-columns: repeat(5, 1fr);
+				}
+			}
+
+			/* Otimizações para monitores grandes (>= Full HD) */
+			@media (min-width: 1920px) {
+				.hero__surface {
+					max-width: 1200px;
+				}
+
+				.survey__form {
+					max-width: 1100px;
+				}
+
+				body {
+					font-size: 18px;
 				}
 			}
 
@@ -870,7 +924,7 @@
 						<h1 class="hero__title" id="heroTitle">Queremos ouvir como foi sua experiência</h1>
 						<p class="hero__copy">Oi, tudo bem? Eu sou o Pedro, assistente virtual da Positivo! 😊</p>
 						<p class="hero__copy">
-							Percebi que você recebeu um atendimento na nossa assistência recentemente. Gostaríamos muito de saber
+							Percebi que você recebeu um atendimento na nossa assistência tecnica recentemente. Gostaríamos muito de saber
 							como foi sua jornada com a gente.
 						</p>
 						<p class="hero__copy hero__copy--highlight">
@@ -1138,21 +1192,19 @@
 				tamperDetected: false,
 			};
 
-			const SCALE_COLORS = [
-				{ bg: "#E45C5C", ink: "#ffffff" },
-				{ bg: "#EA7070", ink: "#ffffff" },
-				{ bg: "#EA8B8B", ink: "#ffffff" },
-				{ bg: "#ECA0A0", ink: "#ffffff" },
-				{ bg: "#F2BFBF", ink: "#7f1d1d" },
-				{ bg: "#FFFFFF", ink: "#004d8c" },
-				{ bg: "#C8E9E5", ink: "#064e3b" },
-				{ bg: "#A4E0D6", ink: "#054f3d" },
-				{ bg: "#7ED1C2", ink: "#053328" },
-				{ bg: "#57CBB2", ink: "#032a20" },
-				{ bg: "#3BBFA3", ink: "#03261d" },
-			];
-
-			const elements = {
+		const SCALE_COLORS = [
+			{ bg: "#D71E1E", ink: "#ffffff" },  // 0 - Vermelho intenso
+			{ bg: "#E03C3C", ink: "#ffffff" },  // 1 - Vermelho médio
+			{ bg: "#E75A3C", ink: "#ffffff" },  // 2 - Laranja-avermelhado
+			{ bg: "#EE7D28", ink: "#ffffff" },  // 3 - Laranja
+			{ bg: "#F5A623", ink: "#ffffff" },  // 4 - Laranja-amarelado
+			{ bg: "#F9C80E", ink: "#ffffff" },  // 5 - Amarelo
+			{ bg: "#E8D21D", ink: "#ffffff" },  // 6 - Amarelo esverdeado
+			{ bg: "#D4DC26", ink: "#ffffff" },  // 7 - Amarelo-verde
+			{ bg: "#B8D334", ink: "#ffffff" },  // 8 - Verde-amarelado
+			{ bg: "#8FBF3B", ink: "#ffffff" },  // 9 - Verde claro
+			{ bg: "#5FA939", ink: "#ffffff" },  // 10 - Verde intenso
+		];		const elements = {
 				startButton: document.getElementById("startSurveyBtn"),
 				surveyContainer: document.getElementById("surveyContainer"),
 				surveyForm: document.getElementById("surveyForm"),

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>npscanais</title>
+  <style>
+    * { box-sizing: border-box; }
+    
+    body { 
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; 
+      margin: 0;
+      padding: clamp(16px, 4vw, 32px);
+      color: #091c28;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .card { 
+      width: 100%;
+      max-width: clamp(320px, 90vw, 800px);
+      background: #fff;
+      padding: clamp(20px, 5vw, 48px);
+      border-radius: clamp(12px, 2vw, 20px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    } 
+    
+    h1 { 
+      font-size: clamp(1.25rem, 4vw, 1.75rem);
+      margin: 0 0 clamp(16px, 3vw, 24px);
+      font-weight: 700;
+    }
+    
+    label { 
+      display: block;
+      margin: clamp(16px, 3vw, 20px) 0 clamp(8px, 2vw, 12px);
+      font-weight: 600;
+      font-size: clamp(0.95rem, 2vw, 1.05rem);
+    }
+    
+    .scale { 
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(clamp(42px, 8vw, 56px), 1fr));
+      gap: clamp(6px, 1.5vw, 10px);
+      margin-top: clamp(8px, 2vw, 12px);
+    }
+    
+    .scale input { display: none; }
+    
+    .scale label { 
+      padding: clamp(10px, 2.5vw, 14px) clamp(8px, 2vw, 12px);
+      border-radius: clamp(8px, 1.5vw, 12px);
+      border: 2px solid #e6eef7;
+      background: #f8fbff;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: clamp(0.95rem, 2vw, 1.1rem);
+      text-align: center;
+      transition: all 200ms ease;
+      min-height: clamp(44px, 10vw, 56px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .scale label:hover {
+      border-color: #0066b3;
+      transform: translateY(-2px);
+    }
+    
+    .scale input:checked + label { 
+      background: #0066b3;
+      color: #fff;
+      border-color: #0066b3;
+      box-shadow: 0 4px 12px rgba(0,102,179,0.25);
+    }
+    
+    select,
+    input[type="text"],
+    textarea { 
+      width: 100%;
+      padding: clamp(10px, 2.5vw, 14px) clamp(12px, 3vw, 16px);
+      border-radius: clamp(8px, 1.5vw, 12px);
+      border: 2px solid #e6eef7;
+      font-family: inherit;
+      font-size: clamp(0.95rem, 2vw, 1rem);
+      transition: border 200ms ease, box-shadow 200ms ease;
+      background: #fff;
+    }
+    
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath fill='%23091c28' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right clamp(12px, 3vw, 16px) center;
+      padding-right: clamp(36px, 8vw, 44px);
+    }
+    
+    textarea { 
+      min-height: clamp(100px, 20vw, 140px);
+      resize: vertical;
+      line-height: 1.5;
+    }
+    
+    select:focus,
+    input[type="text"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #0066b3;
+      box-shadow: 0 0 0 3px rgba(0,102,179,0.1);
+    }
+    
+    .actions { 
+      margin-top: clamp(20px, 4vw, 28px);
+      display: flex;
+      flex-wrap: wrap;
+      gap: clamp(10px, 2.5vw, 14px);
+    }
+    
+    button { 
+      flex: 1 1 clamp(120px, 30vw, 160px);
+      padding: clamp(12px, 2.5vw, 16px) clamp(20px, 4vw, 28px);
+      border-radius: clamp(10px, 2vw, 14px);
+      border: none;
+      background: #0066b3;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: clamp(0.95rem, 2vw, 1.05rem);
+      font-family: inherit;
+      transition: all 200ms ease;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,102,179,0.25);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .muted { 
+      font-weight: 400;
+      color: #666;
+      font-size: clamp(0.85rem, 1.8vw, 0.95rem);
+      margin-top: clamp(6px, 1.5vw, 10px);
+    }
+    
+    #motivoOutro { 
+      display: none;
+      margin-top: clamp(10px, 2vw, 12px);
+    }
+    
+    #result {
+      margin-top: clamp(16px, 3vw, 20px);
+      padding: clamp(12px, 3vw, 16px);
+      border-radius: clamp(8px, 1.5vw, 12px);
+      background: #f1f7ff;
+      border: 2px solid #e6eef7;
+      font-size: clamp(0.85rem, 1.8vw, 0.95rem);
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    
+    /* Melhorias para telas muito pequenas */
+    @media (max-width: 480px) {
+      .scale {
+        grid-template-columns: repeat(auto-fit, minmax(38px, 1fr));
+      }
+      
+      .actions {
+        flex-direction: column;
+      }
+      
+      button {
+        width: 100%;
+      }
+    }
+    
+    /* Ajustes para telas grandes (acima de Full HD) */
+    @media (min-width: 1920px) {
+      body {
+        font-size: 18px;
+      }
+      
+      .card {
+        max-width: 900px;
+      }
+    }
+    
+    /* Otimização para tablets em landscape */
+    @media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+      .card {
+        max-width: 85vw;
+      }
+      
+      .scale {
+        grid-template-columns: repeat(11, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Pesquisa rápida (canais)</h1>
+
+    <form id="npsForm" autocomplete="off">
+
+      <div>
+        <label for="recommendation">Recomendar serviço (0 = Nada provável, 10 = Extremamente provável)</label>
+        <div class="scale" role="radiogroup" aria-labelledby="recommendation">
+          <!-- radios 0..10 -->
+          <script>for(let i=0;i<=10;i++){document.write(`<input type="radio" id="r${i}" name="recommendation" value="${i}" ${i===10?"required":""}><label for="r${i}">${i}</label>`)} </script>
+        </div>
+      </div>
+
+      <div>
+        <label for="motivo">Motivo da nota</label>
+        <select id="motivo" name="motivo">
+          <option value="Cordialidade no atendimento">Cordialidade no atendimento</option>
+          <option value="Tempo de reparo">Tempo de reparo</option>
+          <option value="Clareza e eficiência">Clareza e eficiência</option>
+          <option value="Qualidade do serviço">Qualidade do serviço</option>
+          <option value="Outro">Outro</option>
+        </select>
+        <input type="text" id="motivoOutro" name="motivo_outro" placeholder="Descreva o outro motivo (opcional)" />
+      </div>
+
+      <div>
+        <label for="coment_adicional">Comentário adicional (opcional)</label>
+        <textarea id="coment_adicional" name="coment_adicional" maxlength="1000" placeholder="Deixe seu comentário (opcional)"></textarea>
+        <div class="muted">Máximo 1000 caracteres.</div>
+      </div>
+
+      <div class="actions">
+        <button type="submit">Enviar</button>
+        <button type="button" id="resetBtn" style="background:#e6eef7;color:#0066b3">Limpar</button>
+      </div>
+
+    </form>
+
+    <div id="result" style="display:none;margin-top:14px;padding:12px;border-radius:8px;background:#f1f7ff;border:1px solid #e6eef7"></div>
+  </main>
+
+  <script>
+    const motivo = document.getElementById('motivo');
+    const motivoOutro = document.getElementById('motivoOutro');
+    const form = document.getElementById('npsForm');
+    const result = document.getElementById('result');
+    const resetBtn = document.getElementById('resetBtn');
+
+    motivo.addEventListener('change', () => {
+      if (motivo.value === 'Outro') {
+        motivoOutro.style.display = 'block';
+      } else {
+        motivoOutro.style.display = 'none';
+        motivoOutro.value = '';
+      }
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const data = new FormData(form);
+      const payload = {
+        recommendation: data.get('recommendation'),
+        motivo: data.get('motivo') === 'Outro' ? (data.get('motivo_outro') || 'Outro') : data.get('motivo'),
+        coment_adicional: data.get('coment_adicional') || ''
+      };
+      // Para uso local: apenas mostrar o JSON na tela. Integre ao webhook conforme necessário.
+      result.style.display = 'block';
+      result.textContent = 'Pronto — dados capturados: ' + JSON.stringify(payload, null, 2);
+      console.log('npscanais payload:', payload);
+    });
+
+    resetBtn.addEventListener('click', () => { form.reset(); motivoOutro.style.display = 'none'; result.style.display='none'; });
+  </script>
+</body>
+</html>
