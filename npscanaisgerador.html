@@ -156,7 +156,7 @@
     <input
       type="text"
       id="baseUrl"
-      value="https://seusite.com/npscanais.html"
+      value="https://npspositivo.site/npscanais.html"
       placeholder="Ex: https://seusite.com/npscanais.html"
     />
 
@@ -179,61 +179,64 @@
   </div>
 
   <script>
-    const fileInput = document.getElementById('fileInput');
+    const fileInput   = document.getElementById('fileInput');
     const baseUrlInput = document.getElementById('baseUrl');
     const generateBtn = document.getElementById('generateBtn');
     const downloadBtn = document.getElementById('downloadBtn');
-    const statusEl = document.getElementById('status');
-    const resultsEl = document.getElementById('results');
+    const statusEl    = document.getElementById('status');
+    const resultsEl   = document.getElementById('results');
 
-    let rowsOriginal = [];    // linhas completas do arquivo
-    let rowsWithLinks = [];   // linhas com Token + LinkGerado
+    let rowsOriginal  = [];
+    let rowsWithLinks = [];
 
-    // Normaliza nomes de coluna (tira aspas e espaços extras)
+    // 🔧 Normaliza nomes das colunas (remove BOM, espaços, e tudo que não é letra/número)
     function normalizeHeaderName(name) {
-      return name.trim().replace(/^"|"$/g, '').toUpperCase();
+      return String(name || '')
+        .replace(/\uFEFF/g, '')     // remove BOM escondido
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, ''); // tira acentos, espaços, etc. (EMPRESA, NOME, TELEFONE)
     }
 
-    // Leitor de CSV simples
+    // CSV
     function detectDelimiter(headerLine) {
       if (headerLine.indexOf(';') !== -1 && headerLine.indexOf(',') === -1) return ';';
       if (headerLine.indexOf(',') !== -1 && headerLine.indexOf(';') === -1) return ',';
-      return ','; // padrão
+      return ',';
     }
 
     function parseCSV(text) {
       const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
-      if (lines.length === 0) return [];
+      if (lines.length === 0) return { header: [], rows: [] };
 
       const delimiter = detectDelimiter(lines[0]);
-      const headerRaw = lines[0].split(delimiter);
-      const headerNorm = headerRaw.map(normalizeHeaderName);
+      const headerRaw = lines[0].split(delimiter).map(h => (h != null ? String(h) : ''));
+      const rows = [];
 
-      const dataRows = [];
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
         if (!line.trim()) continue;
         const cols = line.split(delimiter);
-        const rowObj = {};
+        const obj = {};
         for (let c = 0; c < headerRaw.length; c++) {
-          const rawName = headerRaw[c].trim().replace(/^"|"$/g, '');
-          rowObj[rawName] = (cols[c] || '').trim().replace(/^"|"$/g, '');
+          const key = headerRaw[c].replace(/\uFEFF/g, '').trim().replace(/^"|"$/g, '');
+          const cellVal = cols[c];
+          obj[key] = cellVal == null ? '' : String(cellVal).trim().replace(/^"|"$/g, '');
         }
-        dataRows.push(rowObj);
+        rows.push(obj);
       }
-      return { header: headerRaw.map(h => h.trim().replace(/^"|"$/g, '')), rows: dataRows };
+      return { header: headerRaw.map(h => h.replace(/\uFEFF/g, '').trim().replace(/^"|"$/g, '')), rows };
     }
 
-    // Leitor de Excel via XLSX
+    // Excel
     function parseXLSX(arrayBuffer) {
       const data = new Uint8Array(arrayBuffer);
       const workbook = XLSX.read(data, { type: 'array' });
 
-      const sheetName = workbook.SheetNames[0]; // primeira aba
+      const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-
-      // header: 1 → primeira linha é cabeçalho, raw: true para não mexer muito em tipos
       const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: true });
+
       if (json.length === 0) return { header: [], rows: [] };
 
       const headerRaw = json[0].map(h => (h != null ? String(h) : ''));
@@ -241,22 +244,22 @@
 
       for (let i = 1; i < json.length; i++) {
         const rowArr = json[i];
-        if (!rowArr || rowArr.every(v => (v == null || String(v).trim() === ''))) continue;
+        if (!rowArr || rowArr.every(v => v == null || String(v).trim() === '')) continue;
 
         const obj = {};
         for (let c = 0; c < headerRaw.length; c++) {
-          const key = headerRaw[c].trim().replace(/^"|"$/g, '');
+          const key = headerRaw[c].replace(/\uFEFF/g, '').trim().replace(/^"|"$/g, '');
           const cellVal = rowArr[c];
           obj[key] = cellVal == null ? '' : String(cellVal);
         }
         rows.push(obj);
       }
 
-      return { header: headerRaw.map(h => h.trim().replace(/^"|"$/g, '')), rows };
+      return { header: headerRaw.map(h => h.replace(/\uFEFF/g, '').trim().replace(/^"|"$/g, '')), rows };
     }
 
     fileInput.addEventListener('change', () => {
-      rowsOriginal = [];
+      rowsOriginal  = [];
       rowsWithLinks = [];
       resultsEl.innerHTML = '';
       downloadBtn.disabled = true;
@@ -271,7 +274,7 @@
       }
     });
 
-    // Mini-hash SHA-1 abreviado (5 dígitos hex)
+    // Mini-hash SHA-1 (5 primeiros dígitos)
     async function hash5(text) {
       const enc = new TextEncoder();
       const data = enc.encode(text);
@@ -281,11 +284,9 @@
       return hex.substring(0, 5);
     }
 
-    // Gera token com a lógica:
     // token = hash5 + '&' + TELEFONE + '&' + Nome + '&' + EMPRESA
     async function generateToken(telefone, nome, empresa) {
-      // Evitar & dentro dos campos (substitui por espaço)
-      const telSafe = (telefone || '').replace(/&/g, ' ');
+      const telSafe  = (telefone || '').replace(/&/g, ' ');
       const nomeSafe = (nome || '').replace(/&/g, ' ');
       const empSafe  = (empresa || '').replace(/&/g, ' ');
 
@@ -295,14 +296,11 @@
     }
 
     function buildCSVOutput(headers, rows) {
-      // Garante que Token e LinkGerado entrem no fim
       const extraHeaders = ['Token', 'LinkGerado'];
       const fullHeader = [...headers];
 
       extraHeaders.forEach(h => {
-        if (!fullHeader.includes(h)) {
-          fullHeader.push(h);
-        }
+        if (!fullHeader.includes(h)) fullHeader.push(h);
       });
 
       const lines = [fullHeader.join(',')];
@@ -363,7 +361,7 @@
         return;
       }
 
-      const isCSV = /\.csv$/i.test(file.name);
+      const isCSV  = /\.csv$/i.test(file.name);
       const isXLSX = /\.xlsx$/i.test(file.name);
 
       if (!isCSV && !isXLSX) {
@@ -397,12 +395,15 @@
             return;
           }
 
-          // Mapear nomes de coluna (case-insensitive)
           const headerNorm = header.map(normalizeHeaderName);
 
+          console.log('Header bruto:', header);
+          console.log('Header normalizado:', headerNorm);
+
           function findColIndex(target) {
-            const targetUp = target.toUpperCase();
-            return headerNorm.findIndex(h => h === targetUp || h.includes(targetUp));
+            const t = target.toUpperCase();
+            const tNorm = t.replace(/[^A-Z0-9]/g, '');
+            return headerNorm.findIndex(h => h === tNorm);
           }
 
           const idxEmpresa  = findColIndex('EMPRESA');
@@ -419,7 +420,7 @@
           const colNome     = header[idxNome];
           const colTelefone = header[idxTelefone];
 
-          rowsOriginal = rows;
+          rowsOriginal  = rows;
           rowsWithLinks = [];
 
           statusEl.textContent = 'Gerando tokens e links...';
@@ -430,7 +431,6 @@
             const nome     = row[colNome]     != null ? String(row[colNome])     : '';
             const telefone = row[colTelefone] != null ? String(row[colTelefone]) : '';
 
-            // clonar linha original
             const newRow = { ...row };
 
             const token = await generateToken(telefone, nome, empresa);
@@ -439,9 +439,8 @@
             newRow.Token = token;
             newRow.LinkGerado = link;
 
-            // Também garantir EMPRESA / Nome / TELEFONE com essas chaves "bonitinhas"
-            if (!newRow.EMPRESA) newRow.EMPRESA = empresa;
-            if (!newRow.Nome)    newRow.Nome = nome;
+            if (!newRow.EMPRESA)  newRow.EMPRESA  = empresa;
+            if (!newRow.Nome)     newRow.Nome     = nome;
             if (!newRow.TELEFONE) newRow.TELEFONE = telefone;
 
             rowsWithLinks.push(newRow);
@@ -457,7 +456,7 @@
           console.error(err);
           statusEl.textContent = 'Erro ao processar o arquivo: ' + err.message;
           statusEl.className = 'status error';
-          rowsOriginal = [];
+          rowsOriginal  = [];
           rowsWithLinks = [];
           resultsEl.innerHTML = '';
           downloadBtn.disabled = true;
@@ -479,11 +478,11 @@
     downloadBtn.addEventListener('click', () => {
       if (!rowsWithLinks || rowsWithLinks.length === 0) return;
 
-      const allHeadersSet = new Set();
+      const headersSet = new Set();
       rowsWithLinks.forEach(row => {
-        Object.keys(row).forEach(k => allHeadersSet.add(k));
+        Object.keys(row).forEach(k => headersSet.add(k));
       });
-      const headers = Array.from(allHeadersSet);
+      const headers = Array.from(headersSet);
 
       const csvOut = buildCSVOutput(headers, rowsWithLinks);
       const blob = new Blob([csvOut], { type: 'text/csv;charset=utf-8;' });
