@@ -140,13 +140,16 @@
       }
     }
   </style>
+
+  <!-- XLSX para ler Excel no navegador -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
   <div class="container">
     <h1>Gerador de Links NPS em Massa</h1>
     <p class="small">
-      Envie um arquivo CSV com as colunas <strong>EMPRESA</strong> e <strong>Nome</strong>.<br>
-      A ferramenta gera, para cada linha, um link com <code>token</code> (Base64) e <code>h</code> (mini-hash).
+      Envie um arquivo <strong>Excel (.xlsx)</strong> ou <strong>CSV</strong> com as colunas:<br>
+      <code>EMPRESA, Nome, EMAIL, Status, LINK, RecomendarServico, MotivoDaNota, ComentAdicional, TELEFONE</code>.
     </p>
 
     <label for="baseUrl">URL base da pesquisa</label>
@@ -157,16 +160,16 @@
       placeholder="Ex: https://seusite.com/npscanais.html"
     />
 
-    <label for="csvFile">Arquivo CSV (EMPRESA, Nome)</label>
-    <input type="file" id="csvFile" accept=".csv" />
+    <label for="fileInput">Arquivo (.xlsx ou .csv)</label>
+    <input type="file" id="fileInput" accept=".xlsx,.csv" />
 
     <div class="small">
-      • Delimitador pode ser vírgula <code>,</code> ou ponto e vírgula <code>;</code>.<br>
-      • A primeira linha deve conter o cabeçalho (ex.: <code>EMPRESA,Nome</code>).
+      • Para CSV, delimitador pode ser vírgula <code>,</code> ou ponto e vírgula <code>;</code>.<br>
+      • A primeira linha deve conter o cabeçalho.
     </div>
 
     <div class="actions">
-      <button id="generateBtn" disabled>Gerar links</button>
+      <button id="generateBtn" disabled>Gerar tokens e links</button>
       <button id="downloadBtn" class="secondary" disabled>Baixar CSV com links</button>
     </div>
 
@@ -176,46 +179,26 @@
   </div>
 
   <script>
-    const csvInput = document.getElementById('csvFile');
+    const fileInput = document.getElementById('fileInput');
     const baseUrlInput = document.getElementById('baseUrl');
     const generateBtn = document.getElementById('generateBtn');
     const downloadBtn = document.getElementById('downloadBtn');
     const statusEl = document.getElementById('status');
     const resultsEl = document.getElementById('results');
 
-    let parsedRows = [];
-    let generatedLinks = [];
+    let rowsOriginal = [];    // linhas completas do arquivo
+    let rowsWithLinks = [];   // linhas com Token + LinkGerado
 
-    // Base64 que aceita UTF-8 (acentos, ç, etc.)
-    function base64EncodeUnicode(str) {
-      return btoa(
-        encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
-          return String.fromCharCode("0x" + p1);
-        })
-      );
+    // Normaliza nomes de coluna (tira aspas e espaços extras)
+    function normalizeHeaderName(name) {
+      return name.trim().replace(/^"|"$/g, '').toUpperCase();
     }
 
-    // Habilita botão quando tiver arquivo
-    csvInput.addEventListener('change', () => {
-      parsedRows = [];
-      generatedLinks = [];
-      resultsEl.innerHTML = '';
-      downloadBtn.disabled = true;
-      if (csvInput.files && csvInput.files.length > 0) {
-        generateBtn.disabled = false;
-        statusEl.textContent = 'Arquivo selecionado. Clique em "Gerar links".';
-        statusEl.className = 'status';
-      } else {
-        generateBtn.disabled = true;
-        statusEl.textContent = '';
-      }
-    });
-
-    // Detecta delimitador (vírgula ou ponto e vírgula)
+    // Leitor de CSV simples
     function detectDelimiter(headerLine) {
       if (headerLine.indexOf(';') !== -1 && headerLine.indexOf(',') === -1) return ';';
       if (headerLine.indexOf(',') !== -1 && headerLine.indexOf(';') === -1) return ',';
-      return ','; // default
+      return ','; // padrão
     }
 
     function parseCSV(text) {
@@ -224,86 +207,149 @@
 
       const delimiter = detectDelimiter(lines[0]);
       const headerRaw = lines[0].split(delimiter);
-      const headerNorm = headerRaw.map(h => h.trim().replace(/^"|"$/g, '').toUpperCase());
+      const headerNorm = headerRaw.map(normalizeHeaderName);
 
-      // Índices de EMPRESA e NOME
-      const idxEmpresa = headerNorm.findIndex(h => h.includes('EMPRESA'));
-      const idxNome = headerNorm.findIndex(h => h === 'NOME' || h.includes('NOME'));
-
-      if (idxEmpresa === -1 || idxNome === -1) {
-        throw new Error('Cabeçalho não encontrado: é esperado algo como "EMPRESA" e "Nome".');
-      }
-
-      const rows = [];
-
+      const dataRows = [];
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
         if (!line.trim()) continue;
         const cols = line.split(delimiter);
-        const empresa = (cols[idxEmpresa] || '').trim().replace(/^"|"$/g, '');
-        const nome = (cols[idxNome] || '').trim().replace(/^"|"$/g, '');
-        if (!empresa && !nome) continue;
-
-        rows.push({ empresa, nome });
+        const rowObj = {};
+        for (let c = 0; c < headerRaw.length; c++) {
+          const rawName = headerRaw[c].trim().replace(/^"|"$/g, '');
+          rowObj[rawName] = (cols[c] || '').trim().replace(/^"|"$/g, '');
+        }
+        dataRows.push(rowObj);
       }
-
-      return rows;
+      return { header: headerRaw.map(h => h.trim().replace(/^"|"$/g, '')), rows: dataRows };
     }
 
-    // Mini-hash SHA-1 abreviado (6 caracteres)
-    async function sha1Short(text) {
+    // Leitor de Excel via XLSX
+    function parseXLSX(arrayBuffer) {
+      const data = new Uint8Array(arrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      const sheetName = workbook.SheetNames[0]; // primeira aba
+      const worksheet = workbook.Sheets[sheetName];
+
+      // header: 1 → primeira linha é cabeçalho, raw: true para não mexer muito em tipos
+      const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: true });
+      if (json.length === 0) return { header: [], rows: [] };
+
+      const headerRaw = json[0].map(h => (h != null ? String(h) : ''));
+      const rows = [];
+
+      for (let i = 1; i < json.length; i++) {
+        const rowArr = json[i];
+        if (!rowArr || rowArr.every(v => (v == null || String(v).trim() === ''))) continue;
+
+        const obj = {};
+        for (let c = 0; c < headerRaw.length; c++) {
+          const key = headerRaw[c].trim().replace(/^"|"$/g, '');
+          const cellVal = rowArr[c];
+          obj[key] = cellVal == null ? '' : String(cellVal);
+        }
+        rows.push(obj);
+      }
+
+      return { header: headerRaw.map(h => h.trim().replace(/^"|"$/g, '')), rows };
+    }
+
+    fileInput.addEventListener('change', () => {
+      rowsOriginal = [];
+      rowsWithLinks = [];
+      resultsEl.innerHTML = '';
+      downloadBtn.disabled = true;
+
+      if (fileInput.files && fileInput.files.length > 0) {
+        generateBtn.disabled = false;
+        statusEl.textContent = 'Arquivo selecionado. Clique em "Gerar tokens e links".';
+        statusEl.className = 'status';
+      } else {
+        generateBtn.disabled = true;
+        statusEl.textContent = '';
+      }
+    });
+
+    // Mini-hash SHA-1 abreviado (5 dígitos hex)
+    async function hash5(text) {
       const enc = new TextEncoder();
       const data = enc.encode(text);
       const buffer = await crypto.subtle.digest('SHA-1', data);
       const arr = Array.from(new Uint8Array(buffer));
       const hex = arr.map(b => b.toString(16).padStart(2, '0')).join('');
-      return hex.substring(0, 6);
+      return hex.substring(0, 5);
     }
 
-    function buildCSVOutput(rowsWithLinks) {
-      const header = ['EMPRESA', 'Nome', 'Link'];
-      const lines = [header.join(',')];
+    // Gera token com a lógica:
+    // token = hash5 + '&' + TELEFONE + '&' + Nome + '&' + EMPRESA
+    async function generateToken(telefone, nome, empresa) {
+      // Evitar & dentro dos campos (substitui por espaço)
+      const telSafe = (telefone || '').replace(/&/g, ' ');
+      const nomeSafe = (nome || '').replace(/&/g, ' ');
+      const empSafe  = (empresa || '').replace(/&/g, ' ');
 
-      for (const row of rowsWithLinks) {
-        const empresa = `"${(row.empresa || '').replace(/"/g, '""')}"`;
-        const nome = `"${(row.nome || '').replace(/"/g, '""')}"`;
-        const link = `"${(row.link || '').replace(/"/g, '""')}"`;
-        lines.push([empresa, nome, link].join(','));
+      const corpo = `${telSafe}&${nomeSafe}&${empSafe}`;
+      const h = await hash5(corpo);
+      return `${h}&${corpo}`;
+    }
+
+    function buildCSVOutput(headers, rows) {
+      // Garante que Token e LinkGerado entrem no fim
+      const extraHeaders = ['Token', 'LinkGerado'];
+      const fullHeader = [...headers];
+
+      extraHeaders.forEach(h => {
+        if (!fullHeader.includes(h)) {
+          fullHeader.push(h);
+        }
+      });
+
+      const lines = [fullHeader.join(',')];
+
+      for (const row of rows) {
+        const cols = fullHeader.map(h => {
+          const val = row[h] != null ? String(row[h]) : '';
+          return `"${val.replace(/"/g, '""')}"`;
+        });
+        lines.push(cols.join(','));
       }
 
       return lines.join('\r\n');
     }
 
-    function showResultsTable(rowsWithLinks) {
-      if (rowsWithLinks.length === 0) {
+    function showResultsTable(rows) {
+      if (!rows || rows.length === 0) {
         resultsEl.innerHTML = '';
         return;
       }
 
       const maxPreview = 20;
-      const previewRows = rowsWithLinks.slice(0, maxPreview);
+      const preview = rows.slice(0, maxPreview);
 
-      let html = '<table><thead><tr><th>EMPRESA</th><th>Nome</th><th>Link gerado</th></tr></thead><tbody>';
+      let html = '<table><thead><tr><th>EMPRESA</th><th>Nome</th><th>TELEFONE</th><th>Token</th><th>Link gerado</th></tr></thead><tbody>';
 
-      for (const row of previewRows) {
+      for (const row of preview) {
         html += `<tr>
-          <td>${row.empresa || ''}</td>
-          <td>${row.nome || ''}</td>
-          <td><a href="${row.link}" target="_blank" rel="noopener noreferrer">${row.link}</a></td>
+          <td>${row.EMPRESA || row.Empresa || ''}</td>
+          <td>${row.Nome || ''}</td>
+          <td>${row.TELEFONE || ''}</td>
+          <td>${row.Token || ''}</td>
+          <td><a href="${row.LinkGerado || '#'}" target="_blank" rel="noopener noreferrer">${row.LinkGerado || ''}</a></td>
         </tr>`;
       }
 
       html += '</tbody></table>';
 
-      if (rowsWithLinks.length > maxPreview) {
-        html += `<p class="small">Mostrando ${maxPreview} de ${rowsWithLinks.length} registros. Baixe o CSV para ver todos.</p>`;
+      if (rows.length > maxPreview) {
+        html += `<p class="small">Mostrando ${maxPreview} de ${rows.length} registros. Baixe o CSV para ver todos.</p>`;
       }
 
       resultsEl.innerHTML = html;
     }
 
     generateBtn.addEventListener('click', () => {
-      const file = csvInput.files && csvInput.files[0];
+      const file = fileInput.files && fileInput.files[0];
       if (!file) {
         statusEl.textContent = 'Nenhum arquivo selecionado.';
         statusEl.className = 'status error';
@@ -317,50 +363,102 @@
         return;
       }
 
+      const isCSV = /\.csv$/i.test(file.name);
+      const isXLSX = /\.xlsx$/i.test(file.name);
+
+      if (!isCSV && !isXLSX) {
+        statusEl.textContent = 'Tipo de arquivo não suportado. Use .xlsx ou .csv.';
+        statusEl.className = 'status error';
+        return;
+      }
+
       const reader = new FileReader();
+
       reader.onload = async (e) => {
         try {
-          const text = e.target.result;
-          parsedRows = parseCSV(text);
+          let parsed;
+          if (isCSV) {
+            parsed = parseCSV(e.target.result);
+          } else {
+            parsed = parseXLSX(e.target.result);
+          }
 
-          if (parsedRows.length === 0) {
-            statusEl.textContent = 'Nenhuma linha válida encontrada no CSV.';
+          const { header, rows } = parsed;
+
+          if (!header || header.length === 0) {
+            statusEl.textContent = 'Cabeçalho não encontrado no arquivo.';
             statusEl.className = 'status error';
             return;
           }
 
-          statusEl.textContent = 'Gerando links...';
-          statusEl.className = 'status';
-
-          generatedLinks = [];
-
-          for (const row of parsedRows) {
-            const payloadObj = {
-              empresa: row.empresa,
-              nome: row.nome
-            };
-            const jsonStr = JSON.stringify(payloadObj);
-            const token = base64EncodeUnicode(jsonStr);
-            const hash = await sha1Short(jsonStr);
-            const link = `${baseUrl}?token=${encodeURIComponent(token)}&h=${encodeURIComponent(hash)}`;
-
-            generatedLinks.push({
-              empresa: row.empresa,
-              nome: row.nome,
-              link
-            });
+          if (!rows || rows.length === 0) {
+            statusEl.textContent = 'Nenhuma linha de dados encontrada.';
+            statusEl.className = 'status error';
+            return;
           }
 
-          showResultsTable(generatedLinks);
+          // Mapear nomes de coluna (case-insensitive)
+          const headerNorm = header.map(normalizeHeaderName);
+
+          function findColIndex(target) {
+            const targetUp = target.toUpperCase();
+            return headerNorm.findIndex(h => h === targetUp || h.includes(targetUp));
+          }
+
+          const idxEmpresa  = findColIndex('EMPRESA');
+          const idxNome     = findColIndex('NOME');
+          const idxTelefone = findColIndex('TELEFONE');
+
+          if (idxEmpresa === -1 || idxNome === -1 || idxTelefone === -1) {
+            statusEl.textContent = 'Não encontrei colunas EMPRESA, Nome e TELEFONE no arquivo.';
+            statusEl.className = 'status error';
+            return;
+          }
+
+          const colEmpresa  = header[idxEmpresa];
+          const colNome     = header[idxNome];
+          const colTelefone = header[idxTelefone];
+
+          rowsOriginal = rows;
+          rowsWithLinks = [];
+
+          statusEl.textContent = 'Gerando tokens e links...';
+          statusEl.className = 'status';
+
+          for (const row of rowsOriginal) {
+            const empresa  = row[colEmpresa]  != null ? String(row[colEmpresa])  : '';
+            const nome     = row[colNome]     != null ? String(row[colNome])     : '';
+            const telefone = row[colTelefone] != null ? String(row[colTelefone]) : '';
+
+            // clonar linha original
+            const newRow = { ...row };
+
+            const token = await generateToken(telefone, nome, empresa);
+            const link  = `${baseUrl}?token=${encodeURIComponent(token)}`;
+
+            newRow.Token = token;
+            newRow.LinkGerado = link;
+
+            // Também garantir EMPRESA / Nome / TELEFONE com essas chaves "bonitinhas"
+            if (!newRow.EMPRESA) newRow.EMPRESA = empresa;
+            if (!newRow.Nome)    newRow.Nome = nome;
+            if (!newRow.TELEFONE) newRow.TELEFONE = telefone;
+
+            rowsWithLinks.push(newRow);
+          }
+
+          showResultsTable(rowsWithLinks);
           downloadBtn.disabled = false;
 
-          statusEl.textContent = `Links gerados com sucesso: ${generatedLinks.length} registros.`;
+          statusEl.textContent = `Tokens e links gerados com sucesso: ${rowsWithLinks.length} registros.`;
           statusEl.className = 'status success';
+
         } catch (err) {
           console.error(err);
-          statusEl.textContent = 'Erro ao processar o CSV: ' + err.message;
+          statusEl.textContent = 'Erro ao processar o arquivo: ' + err.message;
           statusEl.className = 'status error';
-          generatedLinks = [];
+          rowsOriginal = [];
+          rowsWithLinks = [];
           resultsEl.innerHTML = '';
           downloadBtn.disabled = true;
         }
@@ -371,19 +469,29 @@
         statusEl.className = 'status error';
       };
 
-      reader.readAsText(file, 'utf-8');
+      if (isCSV) {
+        reader.readAsText(file, 'utf-8');
+      } else {
+        reader.readAsArrayBuffer(file);
+      }
     });
 
     downloadBtn.addEventListener('click', () => {
-      if (!generatedLinks || generatedLinks.length === 0) return;
+      if (!rowsWithLinks || rowsWithLinks.length === 0) return;
 
-      const csvOut = buildCSVOutput(generatedLinks);
+      const allHeadersSet = new Set();
+      rowsWithLinks.forEach(row => {
+        Object.keys(row).forEach(k => allHeadersSet.add(k));
+      });
+      const headers = Array.from(allHeadersSet);
+
+      const csvOut = buildCSVOutput(headers, rowsWithLinks);
       const blob = new Blob([csvOut], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
 
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'links_nps.csv';
+      a.download = 'links_nps_gerados.csv';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
