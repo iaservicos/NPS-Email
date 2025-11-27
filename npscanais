@@ -30,8 +30,12 @@
     
     h1 { 
       font-size: clamp(1.25rem, 4vw, 1.75rem);
-      margin: 0 0 clamp(16px, 3vw, 24px);
+      margin: 0 0 clamp(8px, 2vw, 16px);
       font-weight: 700;
+    }
+
+    #identificacao {
+      margin: 0 0 clamp(16px, 3vw, 24px);
     }
     
     label { 
@@ -167,7 +171,6 @@
       white-space: pre-wrap;
     }
     
-    /* Melhorias para telas muito pequenas */
     @media (max-width: 480px) {
       .scale {
         grid-template-columns: repeat(auto-fit, minmax(38px, 1fr));
@@ -182,7 +185,6 @@
       }
     }
     
-    /* Ajustes para telas grandes (acima de Full HD) */
     @media (min-width: 1920px) {
       body {
         font-size: 18px;
@@ -193,7 +195,6 @@
       }
     }
     
-    /* Otimização para tablets em landscape */
     @media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
       .card {
         max-width: 85vw;
@@ -208,6 +209,7 @@
 <body>
   <main class="card">
     <h1>Pesquisa rápida (canais)</h1>
+    <p id="identificacao" class="muted"></p>
 
     <form id="npsForm" autocomplete="off">
 
@@ -215,7 +217,14 @@
         <label for="recommendation">Recomendar serviço (0 = Nada provável, 10 = Extremamente provável)</label>
         <div class="scale" role="radiogroup" aria-labelledby="recommendation">
           <!-- radios 0..10 -->
-          <script>for(let i=0;i<=10;i++){document.write(`<input type="radio" id="r${i}" name="recommendation" value="${i}" ${i===10?"required":""}><label for="r${i}">${i}</label>`)} </script>
+          <script>
+            for (let i = 0; i <= 10; i++) {
+              document.write(
+                `<input type="radio" id="r${i}" name="recommendation" value="${i}" ${i===10?"required":""}>
+                 <label for="r${i}">${i}</label>`
+              );
+            }
+          </script>
         </div>
       </div>
 
@@ -248,12 +257,88 @@
   </main>
 
   <script>
+    // -------- Helpers para URL / Token / Hash --------
+    function getQueryParam(param) {
+      return new URLSearchParams(window.location.search).get(param);
+    }
+
+    function decodeTokenBase64(token) {
+      try {
+        const jsonStr = atob(token);
+        return JSON.parse(jsonStr);
+      } catch (e) {
+        console.error("Erro ao decodificar token:", e);
+        return null;
+      }
+    }
+
+    // Mini-hash SHA-1 abreviado (6 chars)
+    async function sha1Short(text) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(text);
+      const hashBuffer = await crypto.subtle.digest("SHA-1", data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+      return hashHex.substring(0, 6);
+    }
+
     const motivo = document.getElementById('motivo');
     const motivoOutro = document.getElementById('motivoOutro');
     const form = document.getElementById('npsForm');
     const result = document.getElementById('result');
     const resetBtn = document.getElementById('resetBtn');
+    const identificacao = document.getElementById('identificacao');
 
+    let tokenData = {};
+    let hashValido = false;
+
+    // -------- Processa token + hash da URL --------
+    (async () => {
+      const token = getQueryParam("token");
+      const hashRecebido = getQueryParam("h");
+
+      if (!token || !hashRecebido) {
+        result.style.display = "block";
+        result.textContent = "Link inválido: token ou hash ausente.";
+        // Desabilita o formulário
+        form.querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = true);
+        return;
+      }
+
+      const data = decodeTokenBase64(token);
+      if (!data) {
+        result.style.display = "block";
+        result.textContent = "Link inválido: token não pôde ser decodificado.";
+        form.querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = true);
+        return;
+      }
+
+      tokenData = data;
+
+      // Calcula o hash esperado a partir do JSON
+      const jsonStr = JSON.stringify(tokenData);
+      const hashGerado = await sha1Short(jsonStr);
+
+      console.log("Token decodificado:", tokenData);
+      console.log("Hash recebido:", hashRecebido);
+      console.log("Hash gerado :", hashGerado);
+
+      if (hashGerado !== hashRecebido) {
+        result.style.display = "block";
+        result.textContent = "Link inválido: verificação de integridade falhou (hash inconsistente).";
+        form.querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = true);
+        return;
+      }
+
+      hashValido = true;
+
+      // Preenche identificação visível para o usuário
+      const empresaTxt = tokenData.empresa || "Empresa não informada";
+      const nomeTxt = tokenData.nome || "Nome não informado";
+      identificacao.textContent = `Respondendo por: ${empresaTxt} — ${nomeTxt}`;
+    })();
+
+    // -------- Lógica da UI --------
     motivo.addEventListener('change', () => {
       if (motivo.value === 'Outro') {
         motivoOutro.style.display = 'block';
@@ -265,19 +350,38 @@
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
+
+      if (!hashValido) {
+        result.style.display = 'block';
+        result.textContent = 'Não é possível enviar: link inválido ou não verificado.';
+        return;
+      }
+
       const data = new FormData(form);
+
       const payload = {
+        empresa: tokenData.empresa || null,
+        nome: tokenData.nome || null,
         recommendation: data.get('recommendation'),
-        motivo: data.get('motivo') === 'Outro' ? (data.get('motivo_outro') || 'Outro') : data.get('motivo'),
+        motivo: data.get('motivo') === 'Outro'
+          ? (data.get('motivo_outro') || 'Outro')
+          : data.get('motivo'),
         coment_adicional: data.get('coment_adicional') || ''
       };
-      // Para uso local: apenas mostrar o JSON na tela. Integre ao webhook conforme necessário.
+
       result.style.display = 'block';
       result.textContent = 'Pronto — dados capturados: ' + JSON.stringify(payload, null, 2);
+
       console.log('npscanais payload:', payload);
+      // Aqui você pode fazer um fetch() para enviar para um webhook/endpoint
+      // fetch('https://seu-endpoint.com/webhook', { method: 'POST', body: JSON.stringify(payload) ... })
     });
 
-    resetBtn.addEventListener('click', () => { form.reset(); motivoOutro.style.display = 'none'; result.style.display='none'; });
+    resetBtn.addEventListener('click', () => {
+      form.reset();
+      motivoOutro.style.display = 'none';
+      result.style.display = 'none';
+    });
   </script>
 </body>
 </html>
