@@ -1,216 +1,394 @@
-<script>
-  const csvInput = document.getElementById('csvFile');
-  const baseUrlInput = document.getElementById('baseUrl');
-  const generateBtn = document.getElementById('generateBtn');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const statusEl = document.getElementById('status');
-  const resultsEl = document.getElementById('results');
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Gerador de Links NPS em Massa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; }
 
-  let parsedRows = [];
-  let generatedLinks = [];
-
-  // Função Base64 que aceita UTF-8 (acentos, ç, etc.)
-  function base64EncodeUnicode(str) {
-    return btoa(
-      encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
-        return String.fromCharCode("0x" + p1);
-      })
-    );
-  }
-
-  // Habilita botão quando tiver arquivo
-  csvInput.addEventListener('change', () => {
-    parsedRows = [];
-    generatedLinks = [];
-    resultsEl.innerHTML = '';
-    downloadBtn.disabled = true;
-    if (csvInput.files && csvInput.files.length > 0) {
-      generateBtn.disabled = false;
-      statusEl.textContent = 'Arquivo selecionado. Clique em "Gerar links".';
-      statusEl.className = 'status';
-    } else {
-      generateBtn.disabled = true;
-      statusEl.textContent = '';
-    }
-  });
-
-  // Detecta delimitador (vírgula ou ponto e vírgula)
-  function detectDelimiter(headerLine) {
-    if (headerLine.indexOf(';') !== -1 && headerLine.indexOf(',') === -1) return ';';
-    if (headerLine.indexOf(',') !== -1 && headerLine.indexOf(';') === -1) return ',';
-    // Se tiver os dois, assume vírgula por padrão
-    return ',';
-  }
-
-  function parseCSV(text) {
-    const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
-    if (lines.length === 0) return [];
-
-    const delimiter = detectDelimiter(lines[0]);
-    const headerRaw = lines[0].split(delimiter);
-    const headerNorm = headerRaw.map(h => h.trim().replace(/^"|"$/g, '').toUpperCase());
-
-    // Tenta localizar os índices de EMPRESA e NOME (case-insensitive, aproximado)
-    const idxEmpresa = headerNorm.findIndex(h => h.includes('EMPRESA'));
-    const idxNome = headerNorm.findIndex(h => h === 'NOME' || h.includes('NOME'));
-
-    if (idxEmpresa === -1 || idxNome === -1) {
-      throw new Error('Cabeçalho não encontrado: é esperado algo como "EMPRESA" e "Nome".');
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: #f0f4f8;
+      color: #091c28;
     }
 
-    const rows = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line.trim()) continue;
-      const cols = line.split(delimiter);
-      const empresa = (cols[idxEmpresa] || '').trim().replace(/^"|"$/g, '');
-      const nome = (cols[idxNome] || '').trim().replace/^"|"$/g, '');
-      if (!empresa && !nome) continue;
-
-      rows.push({ empresa, nome });
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
     }
 
-    return rows;
-  }
-
-  // Mini-hash SHA-1 abreviado (6 caracteres)
-  async function sha1Short(text) {
-    const enc = new TextEncoder();
-    const data = enc.encode(text);
-    const buffer = await crypto.subtle.digest('SHA-1', data);
-    const arr = Array.from(new Uint8Array(buffer));
-    const hex = arr.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hex.substring(0, 6);
-  }
-
-  function buildCSVOutput(rowsWithLinks) {
-    const header = ['EMPRESA', 'Nome', 'Link'];
-    const lines = [header.join(',')];
-
-    for (const row of rowsWithLinks) {
-      const empresa = `"${(row.empresa || '').replace(/"/g, '""')}"`;
-      const nome = `"${(row.nome || '').replace(/"/g, '""')}"`;
-      const link = `"${(row.link || '').replace(/"/g, '""')}"`;
-      lines.push([empresa, nome, link].join(','));
+    h1 {
+      margin-top: 0;
+      font-size: 1.6rem;
     }
 
-    return lines.join('\r\n');
-  }
-
-  function showResultsTable(rowsWithLinks) {
-    if (rowsWithLinks.length === 0) {
-      resultsEl.innerHTML = '';
-      return;
+    p {
+      margin: 0 0 12px;
     }
 
-    const maxPreview = 20; // mostra só os primeiros 20 pra não ficar gigante
-    const previewRows = rowsWithLinks.slice(0, maxPreview);
-
-    let html = '<table><thead><tr><th>EMPRESA</th><th>Nome</th><th>Link gerado</th></tr></thead><tbody>';
-
-    for (const row of previewRows) {
-      html += `<tr>
-        <td>${row.empresa || ''}</td>
-        <td>${row.nome || ''}</td>
-        <td><a href="${row.link}" target="_blank" rel="noopener noreferrer">${row.link}</a></td>
-      </tr>`;
+    label {
+      display: block;
+      font-weight: 600;
+      margin: 16px 0 6px;
     }
 
-    html += '</tbody></table>';
-
-    if (rowsWithLinks.length > maxPreview) {
-      html += `<p class="small">Mostrando ${maxPreview} de ${rowsWithLinks.length} registros. Baixe o CSV para ver todos.</p>`;
+    input[type="file"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 2px solid #e0e7f0;
+      font-size: 0.95rem;
+      font-family: inherit;
     }
 
-    resultsEl.innerHTML = html;
-  }
-
-  generateBtn.addEventListener('click', () => {
-    const file = csvInput.files && csvInput.files[0];
-    if (!file) {
-      statusEl.textContent = 'Nenhum arquivo selecionado.';
-      statusEl.className = 'status error';
-      return;
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #0066b3;
+      box-shadow: 0 0 0 3px rgba(0,102,179,0.12);
     }
 
-    const baseUrl = baseUrlInput.value.trim();
-    if (!baseUrl) {
-      statusEl.textContent = 'Informe a URL base da pesquisa.';
-      statusEl.className = 'status error';
-      return;
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const text = e.target.result;
-        parsedRows = parseCSV(text);
+    button {
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: none;
+      background: #0066b3;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: all 150ms ease;
+    }
 
-        if (parsedRows.length === 0) {
-          statusEl.textContent = 'Nenhuma linha válida encontrada no CSV.';
-          statusEl.className = 'status error';
-          return;
-        }
+    button[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
 
-        statusEl.textContent = 'Gerando links...';
-        statusEl.className = 'status';
+    button:hover:not([disabled]) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,102,179,0.25);
+    }
 
-        generatedLinks = [];
+    button.secondary {
+      background: #e6eef7;
+      color: #0066b3;
+    }
 
-        for (const row of parsedRows) {
-          const payloadObj = {
-            empresa: row.empresa,
-            nome: row.nome
-          };
-          const jsonStr = JSON.stringify(payloadObj);
-          const token = base64EncodeUnicode(jsonStr); // 🔴 aqui trocou
-          const hash = await sha1Short(jsonStr);
-          const link = `${baseUrl}?token=${encodeURIComponent(token)}&h=${encodeURIComponent(hash)}`;
+    .status {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #555;
+    }
 
-          generatedLinks.push({
-            empresa: row.empresa,
-            nome: row.nome,
-            link
-          });
-        }
+    .status.error {
+      color: #b3261e;
+    }
 
-        showResultsTable(generatedLinks);
-        downloadBtn.disabled = false;
+    .status.success {
+      color: #0d652d;
+    }
 
-        statusEl.textContent = `Links gerados com sucesso: ${generatedLinks.length} registros.`;
-        statusEl.className = 'status success';
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = 'Erro ao processar o CSV: ' + err.message;
-        statusEl.className = 'status error';
-        generatedLinks = [];
-        resultsEl.innerHTML = '';
-        downloadBtn.disabled = true;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 0.85rem;
+    }
+
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e1e7ef;
+      text-align: left;
+      vertical-align: top;
+      word-break: break-word;
+    }
+
+    th {
+      background: #f5f7fb;
+      font-weight: 600;
+    }
+
+    .small {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 16px;
       }
-    };
+      table {
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Gerador de Links NPS em Massa</h1>
+    <p class="small">
+      Envie um arquivo CSV com as colunas <strong>EMPRESA</strong> e <strong>Nome</strong>.<br>
+      A ferramenta gera, para cada linha, um link com <code>token</code> (Base64) e <code>h</code> (mini-hash).
+    </p>
 
-    reader.onerror = () => {
-      statusEl.textContent = 'Erro ao ler o arquivo.';
-      statusEl.className = 'status error';
-    };
+    <label for="baseUrl">URL base da pesquisa</label>
+    <input
+      type="text"
+      id="baseUrl"
+      value="https://seusite.com/npscanais.html"
+      placeholder="Ex: https://seusite.com/npscanais.html"
+    />
 
-    reader.readAsText(file, 'utf-8');
-  });
+    <label for="csvFile">Arquivo CSV (EMPRESA, Nome)</label>
+    <input type="file" id="csvFile" accept=".csv" />
 
-  downloadBtn.addEventListener('click', () => {
-    if (!generatedLinks || generatedLinks.length === 0) return;
+    <div class="small">
+      • Delimitador pode ser vírgula <code>,</code> ou ponto e vírgula <code>;</code>.<br>
+      • A primeira linha deve conter o cabeçalho (ex.: <code>EMPRESA,Nome</code>).
+    </div>
 
-    const csvOut = buildCSVOutput(generatedLinks);
-    const blob = new Blob([csvOut], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    <div class="actions">
+      <button id="generateBtn" disabled>Gerar links</button>
+      <button id="downloadBtn" class="secondary" disabled>Baixar CSV com links</button>
+    </div>
 
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'links_nps.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  });
-</script>
+    <div id="status" class="status"></div>
+
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const csvInput = document.getElementById('csvFile');
+    const baseUrlInput = document.getElementById('baseUrl');
+    const generateBtn = document.getElementById('generateBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const statusEl = document.getElementById('status');
+    const resultsEl = document.getElementById('results');
+
+    let parsedRows = [];
+    let generatedLinks = [];
+
+    // Base64 que aceita UTF-8 (acentos, ç, etc.)
+    function base64EncodeUnicode(str) {
+      return btoa(
+        encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
+          return String.fromCharCode("0x" + p1);
+        })
+      );
+    }
+
+    // Habilita botão quando tiver arquivo
+    csvInput.addEventListener('change', () => {
+      parsedRows = [];
+      generatedLinks = [];
+      resultsEl.innerHTML = '';
+      downloadBtn.disabled = true;
+      if (csvInput.files && csvInput.files.length > 0) {
+        generateBtn.disabled = false;
+        statusEl.textContent = 'Arquivo selecionado. Clique em "Gerar links".';
+        statusEl.className = 'status';
+      } else {
+        generateBtn.disabled = true;
+        statusEl.textContent = '';
+      }
+    });
+
+    // Detecta delimitador (vírgula ou ponto e vírgula)
+    function detectDelimiter(headerLine) {
+      if (headerLine.indexOf(';') !== -1 && headerLine.indexOf(',') === -1) return ';';
+      if (headerLine.indexOf(',') !== -1 && headerLine.indexOf(';') === -1) return ',';
+      return ','; // default
+    }
+
+    function parseCSV(text) {
+      const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+      if (lines.length === 0) return [];
+
+      const delimiter = detectDelimiter(lines[0]);
+      const headerRaw = lines[0].split(delimiter);
+      const headerNorm = headerRaw.map(h => h.trim().replace(/^"|"$/g, '').toUpperCase());
+
+      // Índices de EMPRESA e NOME
+      const idxEmpresa = headerNorm.findIndex(h => h.includes('EMPRESA'));
+      const idxNome = headerNorm.findIndex(h => h === 'NOME' || h.includes('NOME'));
+
+      if (idxEmpresa === -1 || idxNome === -1) {
+        throw new Error('Cabeçalho não encontrado: é esperado algo como "EMPRESA" e "Nome".');
+      }
+
+      const rows = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+        const cols = line.split(delimiter);
+        const empresa = (cols[idxEmpresa] || '').trim().replace(/^"|"$/g, '');
+        const nome = (cols[idxNome] || '').trim().replace(/^"|"$/g, '');
+        if (!empresa && !nome) continue;
+
+        rows.push({ empresa, nome });
+      }
+
+      return rows;
+    }
+
+    // Mini-hash SHA-1 abreviado (6 caracteres)
+    async function sha1Short(text) {
+      const enc = new TextEncoder();
+      const data = enc.encode(text);
+      const buffer = await crypto.subtle.digest('SHA-1', data);
+      const arr = Array.from(new Uint8Array(buffer));
+      const hex = arr.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hex.substring(0, 6);
+    }
+
+    function buildCSVOutput(rowsWithLinks) {
+      const header = ['EMPRESA', 'Nome', 'Link'];
+      const lines = [header.join(',')];
+
+      for (const row of rowsWithLinks) {
+        const empresa = `"${(row.empresa || '').replace(/"/g, '""')}"`;
+        const nome = `"${(row.nome || '').replace(/"/g, '""')}"`;
+        const link = `"${(row.link || '').replace(/"/g, '""')}"`;
+        lines.push([empresa, nome, link].join(','));
+      }
+
+      return lines.join('\r\n');
+    }
+
+    function showResultsTable(rowsWithLinks) {
+      if (rowsWithLinks.length === 0) {
+        resultsEl.innerHTML = '';
+        return;
+      }
+
+      const maxPreview = 20;
+      const previewRows = rowsWithLinks.slice(0, maxPreview);
+
+      let html = '<table><thead><tr><th>EMPRESA</th><th>Nome</th><th>Link gerado</th></tr></thead><tbody>';
+
+      for (const row of previewRows) {
+        html += `<tr>
+          <td>${row.empresa || ''}</td>
+          <td>${row.nome || ''}</td>
+          <td><a href="${row.link}" target="_blank" rel="noopener noreferrer">${row.link}</a></td>
+        </tr>`;
+      }
+
+      html += '</tbody></table>';
+
+      if (rowsWithLinks.length > maxPreview) {
+        html += `<p class="small">Mostrando ${maxPreview} de ${rowsWithLinks.length} registros. Baixe o CSV para ver todos.</p>`;
+      }
+
+      resultsEl.innerHTML = html;
+    }
+
+    generateBtn.addEventListener('click', () => {
+      const file = csvInput.files && csvInput.files[0];
+      if (!file) {
+        statusEl.textContent = 'Nenhum arquivo selecionado.';
+        statusEl.className = 'status error';
+        return;
+      }
+
+      const baseUrl = baseUrlInput.value.trim();
+      if (!baseUrl) {
+        statusEl.textContent = 'Informe a URL base da pesquisa.';
+        statusEl.className = 'status error';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const text = e.target.result;
+          parsedRows = parseCSV(text);
+
+          if (parsedRows.length === 0) {
+            statusEl.textContent = 'Nenhuma linha válida encontrada no CSV.';
+            statusEl.className = 'status error';
+            return;
+          }
+
+          statusEl.textContent = 'Gerando links...';
+          statusEl.className = 'status';
+
+          generatedLinks = [];
+
+          for (const row of parsedRows) {
+            const payloadObj = {
+              empresa: row.empresa,
+              nome: row.nome
+            };
+            const jsonStr = JSON.stringify(payloadObj);
+            const token = base64EncodeUnicode(jsonStr);
+            const hash = await sha1Short(jsonStr);
+            const link = `${baseUrl}?token=${encodeURIComponent(token)}&h=${encodeURIComponent(hash)}`;
+
+            generatedLinks.push({
+              empresa: row.empresa,
+              nome: row.nome,
+              link
+            });
+          }
+
+          showResultsTable(generatedLinks);
+          downloadBtn.disabled = false;
+
+          statusEl.textContent = `Links gerados com sucesso: ${generatedLinks.length} registros.`;
+          statusEl.className = 'status success';
+        } catch (err) {
+          console.error(err);
+          statusEl.textContent = 'Erro ao processar o CSV: ' + err.message;
+          statusEl.className = 'status error';
+          generatedLinks = [];
+          resultsEl.innerHTML = '';
+          downloadBtn.disabled = true;
+        }
+      };
+
+      reader.onerror = () => {
+        statusEl.textContent = 'Erro ao ler o arquivo.';
+        statusEl.className = 'status error';
+      };
+
+      reader.readAsText(file, 'utf-8');
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (!generatedLinks || generatedLinks.length === 0) return;
+
+      const csvOut = buildCSVOutput(generatedLinks);
+      const blob = new Blob([csvOut], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'links_nps.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
