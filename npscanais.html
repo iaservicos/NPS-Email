@@ -30,12 +30,16 @@
     
     .logo-wrap {
       text-align: center;
-      margin-bottom: clamp(12px, 3vw, 20px);
+      margin-bottom: clamp(16px, 3vw, 24px);
+      padding: 14px 18px;
+      background: #003a70;          /* fundo azul escuro pra destacar a logo */
+      border-radius: 12px;
     }
 
     .logo-wrap img {
       max-width: 220px;
       height: auto;
+      filter: drop-shadow(0 0 6px rgba(0,0,0,0.45)); /* deixa mais “forte” */
     }
 
     h1 { 
@@ -244,13 +248,18 @@
           <option value="Qualidade do serviço">Qualidade do serviço</option>
           <option value="Outro">Outro</option>
         </select>
-        <input type="text" id="motivoOutro" name="motivo_outro" maxlength="100" placeholder="Descreva o outro motivo (opcional — máximo 100 caracteres)" />
+        <input
+          type="text"
+          id="motivoOutro"
+          name="motivo_outro"
+          maxlength="100"
+          placeholder="Descreva o outro motivo (opcional — máximo 100 caracteres)"
+        />
       </div>
 
       <div>
         <label for="coment_adicional">Comentário adicional (opcional)</label>
         <textarea id="coment_adicional" name="coment_adicional" maxlength="5000" placeholder="Deixe seu comentário (opcional)"></textarea>
-        
       </div>
 
       <div class="actions">
@@ -263,7 +272,6 @@
   </main>
 
   <script>
-    // ==== CONFIGURAÇÕES ====
     const WEBHOOK_URL =
       "https://defaultfbcbd4a1cffc4c50b5a8611abdfe17.8c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/942c54ffa74443689d8b760fe2faef70/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=8TXk2HqZ0xU0EGSO9M1bbmZ9ITWwKZ3T0PpmY6pGZ-8";
 
@@ -281,17 +289,8 @@
 
     function npsColor(score) {
       const colors = [
-        "#f44336", // 0
-        "#f4511e", // 1
-        "#ff7043", // 2
-        "#ff9800", // 3
-        "#ffb300", // 4
-        "#ffd54f", // 5
-        "#fff176", // 6
-        "#d4e157", // 7
-        "#9ccc65", // 8
-        "#66bb6a", // 9
-        "#43a047"  // 10
+        "#f44336", "#f4511e", "#ff7043", "#ff9800", "#ffb300",
+        "#ffd54f", "#fff176", "#d4e157", "#9ccc65", "#66bb6a", "#43a047"
       ];
       return colors[score] || "#f8fbff";
     }
@@ -327,7 +326,6 @@
     let tokenInfo  = { id: null, nome: null };
     let tokenValido = false;
 
-    // ==== PROCESSA TOKEN hash5&ID&Nome ====
     (async () => {
       buildScale();
 
@@ -351,8 +349,8 @@
       const id           = parts[1];
       const nome         = parts.slice(2).join("&");
 
-      const core       = `${id}&${nome}`;
-      const fullHash   = await sha1(core);
+      const core         = `${id}&${nome}`;
+      const fullHash     = await sha1(core);
       const hashEsperado = fullHash.substring(0, 5);
 
       if (hashRecebido !== hashEsperado) {
@@ -415,9 +413,7 @@
           body: JSON.stringify(payload)
         });
 
-        if (!resp.ok) {
-          throw new Error("Status " + resp.status);
-        }
+        if (!resp.ok) throw new Error("Status " + resp.status);
 
         result.textContent = "Obrigado! Sua resposta foi registrada com sucesso.";
         form.querySelectorAll("input, select, textarea, button").forEach(el => {
@@ -440,4 +436,3 @@
   </script>
 </body>
 </html>
-
