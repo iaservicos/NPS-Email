@@ -219,12 +219,16 @@
 <body>
   <main class="card">
     <div class="logo-wrap">
-      <img src="LOGO-POSITIVO-TECNOLOGIA-tagline 1.png" alt="Positivo Tecnologia">
+      <img src="LOGO-POSITIVO-TECNOLOG[IA]-tagline 1.png" alt="Positivo Tecnologia">
     </div>
 
-    <h1>Pesquisa rápida (canais)</h1>
+    <h1>Pesquisa de Satisfação - Canais</h1>
     <p id="identificacao" class="muted"></p>
 
+    <p class="muted" style="margin-bottom: 20px; font-size: 0.95rem;">
+      Sua opinião é muito importante para nós. Ela nos ajuda a aprimorar nossos serviços e oferecer uma experiência cada vez melhor.
+    </p>
+    
     <form id="npsForm" autocomplete="off">
       <div>
         <label for="recommendation">Recomendar serviço (0 = Nada provável, 10 = Extremamente provável)</label>
@@ -240,13 +244,13 @@
           <option value="Qualidade do serviço">Qualidade do serviço</option>
           <option value="Outro">Outro</option>
         </select>
-        <input type="text" id="motivoOutro" name="motivo_outro" placeholder="Descreva o outro motivo (opcional)" />
+        <input type="text" id="motivoOutro" name="motivo_outro" maxlength="100" placeholder="Descreva o outro motivo (opcional — máximo 100 caracteres)" />
       </div>
 
       <div>
         <label for="coment_adicional">Comentário adicional (opcional)</label>
-        <textarea id="coment_adicional" name="coment_adicional" maxlength="1000" placeholder="Deixe seu comentário (opcional)"></textarea>
-        <div class="muted">Máximo 1000 caracteres.</div>
+        <textarea id="coment_adicional" name="coment_adicional" maxlength="5000" placeholder="Deixe seu comentário (opcional)"></textarea>
+        
       </div>
 
       <div class="actions">
@@ -436,3 +440,4 @@
   </script>
 </body>
 </html>
+
