@@ -219,7 +219,6 @@
 <body>
   <main class="card">
     <div class="logo-wrap">
-      <!-- Ajuste o src se o nome do arquivo for diferente -->
       <img src="LOGO-POSITIVO-TECNOLOGIA-tagline 1.png" alt="Positivo Tecnologia">
     </div>
 
@@ -261,10 +260,8 @@
 
   <script>
     // ==== CONFIGURAÇÕES ====
-    // Webhook do Power Automate (use exatamente o que você passou)
-    const WEBHOOK_URL = "https://defaultfbcbd4a1cffc4c50b5a8611abdfe17.8c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflowLOGO-POSITIVO-TECNOLOG[IA]-tagline 1.pngs/942c54ffa74443689d8b760fe2faef70/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=8TXk2HqZ0xU0EGSO9M1bbmZ9ITWwKZ3T0PpmY6pGZ-8";
-
-    // ==== FUNÇÕES AUXILIARES ====
+    const WEBHOOK_URL =
+      "https://defaultfbcbd4a1cffc4c50b5a8611abdfe17.8c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/942c54ffa74443689d8b760fe2faef70/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=8TXk2HqZ0xU0EGSO9M1bbmZ9ITWwKZ3T0PpmY6pGZ-8";
 
     function getQueryParam(param) {
       return new URLSearchParams(window.location.search).get(param);
@@ -279,7 +276,6 @@
     }
 
     function npsColor(score) {
-      // Paleta do 0 (vermelho) ao 10 (verde)
       const colors = [
         "#f44336", // 0
         "#f4511e", // 1
@@ -316,25 +312,25 @@
       }
     }
 
-    const motivo       = document.getElementById('motivo');
-    const motivoOutro  = document.getElementById('motivoOutro');
-    const form         = document.getElementById('npsForm');
-    const result       = document.getElementById('result');
-    const resetBtn     = document.getElementById('resetBtn');
-    const submitBtn    = document.getElementById('submitBtn');
-    const identificacao= document.getElementById('identificacao');
+    const motivo        = document.getElementById('motivo');
+    const motivoOutro   = document.getElementById('motivoOutro');
+    const form          = document.getElementById('npsForm');
+    const result        = document.getElementById('result');
+    const resetBtn      = document.getElementById('resetBtn');
+    const submitBtn     = document.getElementById('submitBtn');
+    const identificacao = document.getElementById('identificacao');
 
-    let tokenInfo = { id: null, nome: null };
+    let tokenInfo  = { id: null, nome: null };
     let tokenValido = false;
 
     // ==== PROCESSA TOKEN hash5&ID&Nome ====
     (async () => {
-      buildScale(); // monta os botões 0..10
+      buildScale();
 
       const token = getQueryParam("token");
       if (!token) {
         result.style.display = "block";
-        result.textContent = "Link inválido: token ausente.";
+        result.textContent   = "Link inválido: token ausente.";
         form.querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = true);
         return;
       }
@@ -342,33 +338,32 @@
       const parts = token.split("&");
       if (parts.length < 3) {
         result.style.display = "block";
-        result.textContent = "Link inválido: formato do token incorreto.";
+        result.textContent   = "Link inválido: formato do token incorreto.";
         form.querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = true);
         return;
       }
 
       const hashRecebido = parts[0];
       const id           = parts[1];
-      const nome         = parts.slice(2).join("&"); // caso algum & tenha escapado
+      const nome         = parts.slice(2).join("&");
 
-      const core = `${id}&${nome}`;
-      const fullHash = await sha1(core);
-      const hashEsperado = fullHash.substring(0,5);
+      const core       = `${id}&${nome}`;
+      const fullHash   = await sha1(core);
+      const hashEsperado = fullHash.substring(0, 5);
 
       if (hashRecebido !== hashEsperado) {
         result.style.display = "block";
-        result.textContent = "Link inválido: verificação de integridade falhou.";
+        result.textContent   = "Link inválido: verificação de integridade falhou.";
         form.querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = true);
         return;
       }
 
-      tokenInfo = { id, nome };
+      tokenInfo   = { id, nome };
       tokenValido = true;
 
       identificacao.textContent = `Respondendo: ${nome} (ID ${id})`;
     })();
 
-    // ==== LÓGICA DE UI ====
     motivo.addEventListener('change', () => {
       if (motivo.value === 'Outro') {
         motivoOutro.style.display = 'block';
@@ -383,15 +378,15 @@
 
       if (!tokenValido) {
         result.style.display = 'block';
-        result.textContent = 'Não é possível enviar: link inválido ou não verificado.';
+        result.textContent   = 'Não é possível enviar: link inválido ou não verificado.';
         return;
       }
 
-      const data = new FormData(form);
-      const recomendacao = data.get('recommendation');
-      const motivoBase   = data.get('motivo');
-      const motivoOutroV = data.get('motivo_outro');
-      const comentario   = data.get('coment_adicional') || '';
+      const data          = new FormData(form);
+      const recomendacao  = data.get('recommendation');
+      const motivoBase    = data.get('motivo');
+      const motivoOutroV  = data.get('motivo_outro');
+      const comentario    = data.get('coment_adicional') || '';
 
       const motivoFinal = motivoBase === 'Outro'
         ? (motivoOutroV || 'Outro')
@@ -406,15 +401,13 @@
       };
 
       result.style.display = 'block';
-      result.textContent = 'Enviando sua resposta...';
-      submitBtn.disabled = true;
+      result.textContent   = 'Enviando sua resposta...';
+      submitBtn.disabled   = true;
 
       try {
         const resp = await fetch(WEBHOOK_URL, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
 
@@ -438,7 +431,7 @@
       form.reset();
       motivoOutro.style.display = 'none';
       result.style.display = 'none';
-      submitBtn.disabled = false;
+      submitBtn.disabled   = false;
     });
   </script>
 </body>
