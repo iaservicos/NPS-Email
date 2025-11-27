@@ -2,500 +2,265 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <title>Gerador de Links NPS em Massa</title>
+  <title>Gerador de Tokens Simples</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    * { box-sizing: border-box; }
 
+  <style>
     body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      margin: 0;
-      padding: 24px;
-      background: #f0f4f8;
-      color: #091c28;
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      padding: 30px;
     }
 
     .container {
-      max-width: 960px;
-      margin: 0 auto;
-      background: #fff;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      max-width: 700px;
+      margin: auto;
+      background: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     }
 
     h1 {
       margin-top: 0;
-      font-size: 1.6rem;
-    }
-
-    p {
-      margin: 0 0 12px;
     }
 
     label {
+      font-weight: bold;
+      margin-top: 20px;
       display: block;
-      font-weight: 600;
-      margin: 16px 0 6px;
     }
 
-    input[type="file"],
-    input[type="text"] {
+    input[type="file"], input[type="text"] {
       width: 100%;
-      padding: 10px 12px;
-      border-radius: 8px;
-      border: 2px solid #e0e7f0;
-      font-size: 0.95rem;
-      font-family: inherit;
-    }
-
-    input[type="text"]:focus {
-      outline: none;
-      border-color: #0066b3;
-      box-shadow: 0 0 0 3px rgba(0,102,179,0.12);
-    }
-
-    .actions {
-      margin-top: 18px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+      font-size: 16px;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
 
     button {
-      padding: 10px 18px;
-      border-radius: 999px;
+      background: #0066cc;
+      color: white;
       border: none;
-      background: #0066b3;
-      color: #fff;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 6px;
       cursor: pointer;
-      font-weight: 600;
-      font-size: 0.95rem;
-      font-family: inherit;
-      transition: all 150ms ease;
+      margin-top: 20px;
     }
 
-    button[disabled] {
+    button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
-      box-shadow: none;
-      transform: none;
-    }
-
-    button:hover:not([disabled]) {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,102,179,0.25);
-    }
-
-    button.secondary {
-      background: #e6eef7;
-      color: #0066b3;
     }
 
     .status {
       margin-top: 10px;
-      font-size: 0.9rem;
-      color: #555;
+      font-size: 14px;
     }
 
-    .status.error {
-      color: #b3261e;
-    }
-
-    .status.success {
-      color: #0d652d;
-    }
+    .error { color: #d32f2f; }
+    .success { color: #2e7d32; }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
-      font-size: 0.85rem;
+      margin-top: 25px;
     }
 
     th, td {
-      padding: 8px 10px;
-      border-bottom: 1px solid #e1e7ef;
-      text-align: left;
-      vertical-align: top;
-      word-break: break-word;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 8px;
     }
 
     th {
-      background: #f5f7fb;
-      font-weight: 600;
-    }
-
-    .small {
-      font-size: 0.8rem;
-      color: #666;
-    }
-
-    @media (max-width: 640px) {
-      .container {
-        padding: 16px;
-      }
-      table {
-        font-size: 0.8rem;
-      }
+      background: #f5f5f5;
     }
   </style>
 
-  <!-- XLSX para ler Excel no navegador -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>Gerador de Links NPS em Massa</h1>
-    <p class="small">
-      Envie um arquivo <strong>Excel (.xlsx)</strong> ou <strong>CSV</strong> com as colunas:<br>
-      <code>EMPRESA, Nome, EMAIL, Status, LINK, RecomendarServico, MotivoDaNota, ComentAdicional, TELEFONE</code>.
-    </p>
 
-    <label for="baseUrl">URL base da pesquisa</label>
-    <input
-      type="text"
-      id="baseUrl"
-      value="https://npspositivo.site/npscanais.html"
-      placeholder="Ex: https://seusite.com/npscanais.html"
-    />
+<div class="container">
+  <h1>Gerador de Tokens Simples</h1>
+  <p>Token = 5 primeiros dígitos do hash + 5 dígitos de ID + Nome</p>
 
-    <label for="fileInput">Arquivo (.xlsx ou .csv)</label>
-    <input type="file" id="fileInput" accept=".xlsx,.csv" />
+  <label>URL base do link</label>
+  <input id="baseUrl" type="text" value="https://seusite.com/formulario.html"/>
 
-    <div class="small">
-      • Para CSV, delimitador pode ser vírgula <code>,</code> ou ponto e vírgula <code>;</code>.<br>
-      • A primeira linha deve conter o cabeçalho.
-    </div>
+  <label>Arquivo Excel ou CSV</label>
+  <input id="fileInput" type="file" accept=".xlsx,.csv"/>
 
-    <div class="actions">
-      <button id="generateBtn" disabled>Gerar tokens e links</button>
-      <button id="downloadBtn" class="secondary" disabled>Baixar CSV com links</button>
-    </div>
+  <button id="generateBtn" disabled>Gerar Tokens</button>
+  <button id="downloadBtn" disabled>Baixar CSV</button>
 
-    <div id="status" class="status"></div>
+  <div id="status" class="status"></div>
 
-    <div id="results"></div>
-  </div>
+  <div id="results"></div>
+</div>
 
-  <script>
-    const fileInput   = document.getElementById('fileInput');
-    const baseUrlInput = document.getElementById('baseUrl');
-    const generateBtn = document.getElementById('generateBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const statusEl    = document.getElementById('status');
-    const resultsEl   = document.getElementById('results');
+<script>
+  const fileInput = document.getElementById("fileInput");
+  const generateBtn = document.getElementById("generateBtn");
+  const downloadBtn = document.getElementById("downloadBtn");
+  const statusEl = document.getElementById("status");
+  const resultsEl = document.getElementById("results");
 
-    let rowsOriginal  = [];
-    let rowsWithLinks = [];
+  let rows = [];
+  let outputRows = [];
 
-    // 🔧 Normaliza nomes das colunas (remove BOM, espaços, e tudo que não é letra/número)
-    function normalizeHeaderName(name) {
-      return String(name || '')
-        .replace(/\uFEFF/g, '')     // remove BOM escondido
-        .trim()
-        .toUpperCase()
-        .replace(/[^A-Z0-9]/g, ''); // tira acentos, espaços, etc. (EMPRESA, NOME, TELEFONE)
-    }
+  fileInput.addEventListener("change", () => {
+    generateBtn.disabled = !fileInput.files.length;
+    statusEl.textContent = "";
+  });
 
-    // CSV
-    function detectDelimiter(headerLine) {
-      if (headerLine.indexOf(';') !== -1 && headerLine.indexOf(',') === -1) return ';';
-      if (headerLine.indexOf(',') !== -1 && headerLine.indexOf(';') === -1) return ',';
-      return ',';
-    }
+  async function sha1(text) {
+    const data = new TextEncoder().encode(text);
+    const hash = await crypto.subtle.digest("SHA-1", data);
+    return Array.from(new Uint8Array(hash))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
 
-    function parseCSV(text) {
-      const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
-      if (lines.length === 0) return { header: [], rows: [] };
+  function parseCSV(text) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    const header = lines[0].split(",").map(h => h.trim());
+    const rows = [];
 
-      const delimiter = detectDelimiter(lines[0]);
-      const headerRaw = lines[0].split(delimiter).map(h => (h != null ? String(h) : ''));
-      const rows = [];
-
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i];
-        if (!line.trim()) continue;
-        const cols = line.split(delimiter);
-        const obj = {};
-        for (let c = 0; c < headerRaw.length; c++) {
-          const key = headerRaw[c].replace(/\uFEFF/g, '').trim().replace(/^"|"$/g, '');
-          const cellVal = cols[c];
-          obj[key] = cellVal == null ? '' : String(cellVal).trim().replace(/^"|"$/g, '');
-        }
-        rows.push(obj);
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(",");
+      const row = {};
+      for (let j = 0; j < header.length; j++) {
+        row[header[j]] = cols[j] ? cols[j].trim() : "";
       }
-      return { header: headerRaw.map(h => h.replace(/\uFEFF/g, '').trim().replace(/^"|"$/g, '')), rows };
+      rows.push(row);
     }
+    return { header, rows };
+  }
 
-    // Excel
-    function parseXLSX(arrayBuffer) {
-      const data = new Uint8Array(arrayBuffer);
-      const workbook = XLSX.read(data, { type: 'array' });
+  function parseXLSX(buffer) {
+    const wb = XLSX.read(buffer, { type: "array" });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: true });
+    const header = json[0].map(x => String(x));
+    const rows = [];
 
-      if (json.length === 0) return { header: [], rows: [] };
-
-      const headerRaw = json[0].map(h => (h != null ? String(h) : ''));
-      const rows = [];
-
-      for (let i = 1; i < json.length; i++) {
-        const rowArr = json[i];
-        if (!rowArr || rowArr.every(v => v == null || String(v).trim() === '')) continue;
-
-        const obj = {};
-        for (let c = 0; c < headerRaw.length; c++) {
-          const key = headerRaw[c].replace(/\uFEFF/g, '').trim().replace(/^"|"$/g, '');
-          const cellVal = rowArr[c];
-          obj[key] = cellVal == null ? '' : String(cellVal);
-        }
-        rows.push(obj);
+    for (let i = 1; i < json.length; i++) {
+      if (!json[i]) continue;
+      const obj = {};
+      for (let j = 0; j < header.length; j++) {
+        obj[header[j]] = json[i][j] ? String(json[i][j]) : "";
       }
-
-      return { header: headerRaw.map(h => h.replace(/\uFEFF/g, '').trim().replace(/^"|"$/g, '')), rows };
+      rows.push(obj);
     }
 
-    fileInput.addEventListener('change', () => {
-      rowsOriginal  = [];
-      rowsWithLinks = [];
-      resultsEl.innerHTML = '';
-      downloadBtn.disabled = true;
+    return { header, rows };
+  }
 
-      if (fileInput.files && fileInput.files.length > 0) {
-        generateBtn.disabled = false;
-        statusEl.textContent = 'Arquivo selecionado. Clique em "Gerar tokens e links".';
-        statusEl.className = 'status';
+
+  generateBtn.addEventListener("click", async () => {
+    const file = fileInput.files[0];
+
+    if (!file) return;
+
+    const baseUrl = document.getElementById("baseUrl").value.trim();
+    if (!baseUrl) {
+      statusEl.textContent = "Informe a URL base!";
+      statusEl.className = "error status";
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = async e => {
+      let parsed;
+
+      if (/\.csv$/i.test(file.name)) {
+        parsed = parseCSV(e.target.result);
       } else {
-        generateBtn.disabled = true;
-        statusEl.textContent = '';
+        parsed = parseXLSX(e.target.result);
       }
-    });
 
-    // Mini-hash SHA-1 (5 primeiros dígitos)
-    async function hash5(text) {
-      const enc = new TextEncoder();
-      const data = enc.encode(text);
-      const buffer = await crypto.subtle.digest('SHA-1', data);
-      const arr = Array.from(new Uint8Array(buffer));
-      const hex = arr.map(b => b.toString(16).padStart(2, '0')).join('');
-      return hex.substring(0, 5);
-    }
+      const { header, rows: fileRows } = parsed;
 
-    // token = hash5 + '&' + TELEFONE + '&' + Nome + '&' + EMPRESA
-    async function generateToken(telefone, nome, empresa) {
-      const telSafe  = (telefone || '').replace(/&/g, ' ');
-      const nomeSafe = (nome || '').replace(/&/g, ' ');
-      const empSafe  = (empresa || '').replace(/&/g, ' ');
+      if (!header.includes("Nome")) {
+        statusEl.textContent = "A coluna 'Nome' é obrigatória!";
+        statusEl.className = "error status";
+        return;
+      }
 
-      const corpo = `${telSafe}&${nomeSafe}&${empSafe}`;
-      const h = await hash5(corpo);
-      return `${h}&${corpo}`;
-    }
+      const hasID = header.includes("ID");
 
-    function buildCSVOutput(headers, rows) {
-      const extraHeaders = ['Token', 'LinkGerado'];
-      const fullHeader = [...headers];
+      outputRows = [];
 
-      extraHeaders.forEach(h => {
-        if (!fullHeader.includes(h)) fullHeader.push(h);
-      });
+      for (const row of fileRows) {
+        const nome = row["Nome"] || "";
+        let id = row["ID"] || "";
 
-      const lines = [fullHeader.join(',')];
+        if (!id) {
+          id = String(Math.floor(Math.random() * 100000)).padStart(5, "0");
+        } else {
+          id = String(id).padStart(5, "0");
+        }
 
-      for (const row of rows) {
-        const cols = fullHeader.map(h => {
-          const val = row[h] != null ? String(row[h]) : '';
-          return `"${val.replace(/"/g, '""')}"`;
+        const core = `${id}&${nome}`;
+        const h = await sha1(core);
+        const hash5 = h.substring(0, 5);
+
+        const token = `${hash5}&${id}&${nome}`;
+        const link = `${baseUrl}?token=${encodeURIComponent(token)}`;
+
+        outputRows.push({
+          Nome: nome,
+          ID: id,
+          Token: token,
+          Link: link
         });
-        lines.push(cols.join(','));
       }
 
-      return lines.join('\r\n');
-    }
+      statusEl.textContent = "Tokens gerados com sucesso!";
+      statusEl.className = "success status";
+      downloadBtn.disabled = false;
 
-    function showResultsTable(rows) {
-      if (!rows || rows.length === 0) {
-        resultsEl.innerHTML = '';
-        return;
-      }
+      renderTable(outputRows.slice(0, 20));
+    };
 
-      const maxPreview = 20;
-      const preview = rows.slice(0, maxPreview);
+    reader.readAsBinaryString ? reader.readAsBinaryString(file) : reader.readAsArrayBuffer(file);
+  });
 
-      let html = '<table><thead><tr><th>EMPRESA</th><th>Nome</th><th>TELEFONE</th><th>Token</th><th>Link gerado</th></tr></thead><tbody>';
+  function renderTable(rows) {
+    let html = "<table><tr><th>ID</th><th>Nome</th><th>Token</th><th>Link</th></tr>";
+    rows.forEach(r => {
+      html += `<tr>
+        <td>${r.ID}</td>
+        <td>${r.Nome}</td>
+        <td>${r.Token}</td>
+        <td><a href="${r.Link}" target="_blank">${r.Link}</a></td>
+      </tr>`;
+    });
+    html += "</table>";
+    resultsEl.innerHTML = html;
+  }
 
-      for (const row of preview) {
-        html += `<tr>
-          <td>${row.EMPRESA || row.Empresa || ''}</td>
-          <td>${row.Nome || ''}</td>
-          <td>${row.TELEFONE || ''}</td>
-          <td>${row.Token || ''}</td>
-          <td><a href="${row.LinkGerado || '#'}" target="_blank" rel="noopener noreferrer">${row.LinkGerado || ''}</a></td>
-        </tr>`;
-      }
-
-      html += '</tbody></table>';
-
-      if (rows.length > maxPreview) {
-        html += `<p class="small">Mostrando ${maxPreview} de ${rows.length} registros. Baixe o CSV para ver todos.</p>`;
-      }
-
-      resultsEl.innerHTML = html;
-    }
-
-    generateBtn.addEventListener('click', () => {
-      const file = fileInput.files && fileInput.files[0];
-      if (!file) {
-        statusEl.textContent = 'Nenhum arquivo selecionado.';
-        statusEl.className = 'status error';
-        return;
-      }
-
-      const baseUrl = baseUrlInput.value.trim();
-      if (!baseUrl) {
-        statusEl.textContent = 'Informe a URL base da pesquisa.';
-        statusEl.className = 'status error';
-        return;
-      }
-
-      const isCSV  = /\.csv$/i.test(file.name);
-      const isXLSX = /\.xlsx$/i.test(file.name);
-
-      if (!isCSV && !isXLSX) {
-        statusEl.textContent = 'Tipo de arquivo não suportado. Use .xlsx ou .csv.';
-        statusEl.className = 'status error';
-        return;
-      }
-
-      const reader = new FileReader();
-
-      reader.onload = async (e) => {
-        try {
-          let parsed;
-          if (isCSV) {
-            parsed = parseCSV(e.target.result);
-          } else {
-            parsed = parseXLSX(e.target.result);
-          }
-
-          const { header, rows } = parsed;
-
-          if (!header || header.length === 0) {
-            statusEl.textContent = 'Cabeçalho não encontrado no arquivo.';
-            statusEl.className = 'status error';
-            return;
-          }
-
-          if (!rows || rows.length === 0) {
-            statusEl.textContent = 'Nenhuma linha de dados encontrada.';
-            statusEl.className = 'status error';
-            return;
-          }
-
-          const headerNorm = header.map(normalizeHeaderName);
-
-          console.log('Header bruto:', header);
-          console.log('Header normalizado:', headerNorm);
-
-          function findColIndex(target) {
-            const t = target.toUpperCase();
-            const tNorm = t.replace(/[^A-Z0-9]/g, '');
-            return headerNorm.findIndex(h => h === tNorm);
-          }
-
-          const idxEmpresa  = findColIndex('EMPRESA');
-          const idxNome     = findColIndex('NOME');
-          const idxTelefone = findColIndex('TELEFONE');
-
-          if (idxEmpresa === -1 || idxNome === -1 || idxTelefone === -1) {
-            statusEl.textContent = 'Não encontrei colunas EMPRESA, Nome e TELEFONE no arquivo.';
-            statusEl.className = 'status error';
-            return;
-          }
-
-          const colEmpresa  = header[idxEmpresa];
-          const colNome     = header[idxNome];
-          const colTelefone = header[idxTelefone];
-
-          rowsOriginal  = rows;
-          rowsWithLinks = [];
-
-          statusEl.textContent = 'Gerando tokens e links...';
-          statusEl.className = 'status';
-
-          for (const row of rowsOriginal) {
-            const empresa  = row[colEmpresa]  != null ? String(row[colEmpresa])  : '';
-            const nome     = row[colNome]     != null ? String(row[colNome])     : '';
-            const telefone = row[colTelefone] != null ? String(row[colTelefone]) : '';
-
-            const newRow = { ...row };
-
-            const token = await generateToken(telefone, nome, empresa);
-            const link  = `${baseUrl}?token=${encodeURIComponent(token)}`;
-
-            newRow.Token = token;
-            newRow.LinkGerado = link;
-
-            if (!newRow.EMPRESA)  newRow.EMPRESA  = empresa;
-            if (!newRow.Nome)     newRow.Nome     = nome;
-            if (!newRow.TELEFONE) newRow.TELEFONE = telefone;
-
-            rowsWithLinks.push(newRow);
-          }
-
-          showResultsTable(rowsWithLinks);
-          downloadBtn.disabled = false;
-
-          statusEl.textContent = `Tokens e links gerados com sucesso: ${rowsWithLinks.length} registros.`;
-          statusEl.className = 'status success';
-
-        } catch (err) {
-          console.error(err);
-          statusEl.textContent = 'Erro ao processar o arquivo: ' + err.message;
-          statusEl.className = 'status error';
-          rowsOriginal  = [];
-          rowsWithLinks = [];
-          resultsEl.innerHTML = '';
-          downloadBtn.disabled = true;
-        }
-      };
-
-      reader.onerror = () => {
-        statusEl.textContent = 'Erro ao ler o arquivo.';
-        statusEl.className = 'status error';
-      };
-
-      if (isCSV) {
-        reader.readAsText(file, 'utf-8');
-      } else {
-        reader.readAsArrayBuffer(file);
-      }
+  downloadBtn.addEventListener("click", () => {
+    let csv = "ID,Nome,Token,Link\n";
+    outputRows.forEach(r => {
+      csv += `"${r.ID}","${r.Nome}","${r.Token}","${r.Link}"\n`;
     });
 
-    downloadBtn.addEventListener('click', () => {
-      if (!rowsWithLinks || rowsWithLinks.length === 0) return;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tokens.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+</script>
 
-      const headersSet = new Set();
-      rowsWithLinks.forEach(row => {
-        Object.keys(row).forEach(k => headersSet.add(k));
-      });
-      const headers = Array.from(headersSet);
-
-      const csvOut = buildCSVOutput(headers, rowsWithLinks);
-      const blob = new Blob([csvOut], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'links_nps_gerados.csv';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    });
-  </script>
 </body>
 </html>
