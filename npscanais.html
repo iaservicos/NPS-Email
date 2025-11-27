@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>npscanais</title>
+  <title>Pesquisa rápida – NPS</title>
   <style>
     * { box-sizing: border-box; }
     
@@ -28,6 +28,16 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.08);
     } 
     
+    .logo-wrap {
+      text-align: center;
+      margin-bottom: clamp(12px, 3vw, 20px);
+    }
+
+    .logo-wrap img {
+      max-width: 220px;
+      height: auto;
+    }
+
     h1 { 
       font-size: clamp(1.25rem, 4vw, 1.75rem);
       margin: 0 0 clamp(8px, 2vw, 16px);
@@ -47,39 +57,43 @@
     
     .scale { 
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(clamp(42px, 8vw, 56px), 1fr));
-      gap: clamp(6px, 1.5vw, 10px);
+      grid-template-columns: repeat(11, minmax(0, 1fr));
+      gap: clamp(4px, 1vw, 8px);
       margin-top: clamp(8px, 2vw, 12px);
     }
     
-    .scale input { display: none; }
+    .scale input { 
+      display: none;
+    }
     
     .scale label { 
       padding: clamp(10px, 2.5vw, 14px) clamp(8px, 2vw, 12px);
-      border-radius: clamp(8px, 1.5vw, 12px);
-      border: 2px solid #e6eef7;
-      background: #f8fbff;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      background: var(--nps-color, #f8fbff);
       cursor: pointer;
       font-weight: 700;
       font-size: clamp(0.95rem, 2vw, 1.1rem);
       text-align: center;
-      transition: all 200ms ease;
+      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease, filter 150ms ease;
       min-height: clamp(44px, 10vw, 56px);
       display: flex;
       align-items: center;
       justify-content: center;
+      color: #fff;
     }
     
     .scale label:hover {
-      border-color: #0066b3;
       transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.20);
+      filter: brightness(1.05);
     }
     
     .scale input:checked + label { 
-      background: #0066b3;
-      color: #fff;
-      border-color: #0066b3;
-      box-shadow: 0 4px 12px rgba(0,102,179,0.25);
+      border-color: #ffffffcc;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      transform: translateY(-2px) scale(1.02);
+      filter: brightness(1.08);
     }
     
     select,
@@ -139,13 +153,19 @@
       transition: all 200ms ease;
     }
     
-    button:hover {
+    button:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 6px 16px rgba(0,102,179,0.25);
     }
     
-    button:active {
+    button:active:not(:disabled) {
       transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
     }
     
     .muted { 
@@ -173,7 +193,7 @@
     
     @media (max-width: 480px) {
       .scale {
-        grid-template-columns: repeat(auto-fit, minmax(38px, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
       
       .actions {
@@ -194,38 +214,22 @@
         max-width: 900px;
       }
     }
-    
-    @media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
-      .card {
-        max-width: 85vw;
-      }
-      
-      .scale {
-        grid-template-columns: repeat(11, 1fr);
-      }
-    }
   </style>
 </head>
 <body>
   <main class="card">
+    <div class="logo-wrap">
+      <!-- Ajuste o src se o nome do arquivo for diferente -->
+      <img src="LOGO-POSITIVO-TECNOLOGIA-tagline 1.png" alt="Positivo Tecnologia">
+    </div>
+
     <h1>Pesquisa rápida (canais)</h1>
     <p id="identificacao" class="muted"></p>
 
     <form id="npsForm" autocomplete="off">
-
       <div>
         <label for="recommendation">Recomendar serviço (0 = Nada provável, 10 = Extremamente provável)</label>
-        <div class="scale" role="radiogroup" aria-labelledby="recommendation">
-          <!-- radios 0..10 -->
-          <script>
-            for (let i = 0; i <= 10; i++) {
-              document.write(
-                `<input type="radio" id="r${i}" name="recommendation" value="${i}" ${i===10?"required":""}>
-                 <label for="r${i}">${i}</label>`
-              );
-            }
-          </script>
-        </div>
+        <div class="scale" id="scale" role="radiogroup" aria-labelledby="recommendation"></div>
       </div>
 
       <div>
@@ -247,98 +251,124 @@
       </div>
 
       <div class="actions">
-        <button type="submit">Enviar</button>
+        <button type="submit" id="submitBtn">Enviar</button>
         <button type="button" id="resetBtn" style="background:#e6eef7;color:#0066b3">Limpar</button>
       </div>
-
     </form>
 
-    <div id="result" style="display:none;margin-top:14px;padding:12px;border-radius:8px;background:#f1f7ff;border:1px solid #e6eef7"></div>
+    <div id="result" style="display:none;"></div>
   </main>
 
   <script>
-    // -------- Helpers para URL / Token / Hash --------
+    // ==== CONFIGURAÇÕES ====
+    // Webhook do Power Automate (use exatamente o que você passou)
+    const WEBHOOK_URL = "https://defaultfbcbd4a1cffc4c50b5a8611abdfe17.8c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflowLOGO-POSITIVO-TECNOLOG[IA]-tagline 1.pngs/942c54ffa74443689d8b760fe2faef70/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=8TXk2HqZ0xU0EGSO9M1bbmZ9ITWwKZ3T0PpmY6pGZ-8";
+
+    // ==== FUNÇÕES AUXILIARES ====
+
     function getQueryParam(param) {
       return new URLSearchParams(window.location.search).get(param);
     }
 
-    function decodeTokenBase64(token) {
-      try {
-        const jsonStr = atob(token);
-        return JSON.parse(jsonStr);
-      } catch (e) {
-        console.error("Erro ao decodificar token:", e);
-        return null;
-      }
-    }
-
-    // Mini-hash SHA-1 abreviado (6 chars)
-    async function sha1Short(text) {
+    async function sha1(text) {
       const encoder = new TextEncoder();
       const data = encoder.encode(text);
       const hashBuffer = await crypto.subtle.digest("SHA-1", data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-      return hashHex.substring(0, 6);
+      return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
-    const motivo = document.getElementById('motivo');
-    const motivoOutro = document.getElementById('motivoOutro');
-    const form = document.getElementById('npsForm');
-    const result = document.getElementById('result');
-    const resetBtn = document.getElementById('resetBtn');
-    const identificacao = document.getElementById('identificacao');
+    function npsColor(score) {
+      // Paleta do 0 (vermelho) ao 10 (verde)
+      const colors = [
+        "#f44336", // 0
+        "#f4511e", // 1
+        "#ff7043", // 2
+        "#ff9800", // 3
+        "#ffb300", // 4
+        "#ffd54f", // 5
+        "#fff176", // 6
+        "#d4e157", // 7
+        "#9ccc65", // 8
+        "#66bb6a", // 9
+        "#43a047"  // 10
+      ];
+      return colors[score] || "#f8fbff";
+    }
 
-    let tokenData = {};
-    let hashValido = false;
+    function buildScale() {
+      const container = document.getElementById("scale");
+      for (let i = 0; i <= 10; i++) {
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.id = "r" + i;
+        input.name = "recommendation";
+        input.value = String(i);
+        if (i === 10) input.required = true;
 
-    // -------- Processa token + hash da URL --------
+        const label = document.createElement("label");
+        label.setAttribute("for", "r" + i);
+        label.style.setProperty("--nps-color", npsColor(i));
+        label.textContent = String(i);
+
+        container.appendChild(input);
+        container.appendChild(label);
+      }
+    }
+
+    const motivo       = document.getElementById('motivo');
+    const motivoOutro  = document.getElementById('motivoOutro');
+    const form         = document.getElementById('npsForm');
+    const result       = document.getElementById('result');
+    const resetBtn     = document.getElementById('resetBtn');
+    const submitBtn    = document.getElementById('submitBtn');
+    const identificacao= document.getElementById('identificacao');
+
+    let tokenInfo = { id: null, nome: null };
+    let tokenValido = false;
+
+    // ==== PROCESSA TOKEN hash5&ID&Nome ====
     (async () => {
+      buildScale(); // monta os botões 0..10
+
       const token = getQueryParam("token");
-      const hashRecebido = getQueryParam("h");
-
-      if (!token || !hashRecebido) {
+      if (!token) {
         result.style.display = "block";
-        result.textContent = "Link inválido: token ou hash ausente.";
-        // Desabilita o formulário
+        result.textContent = "Link inválido: token ausente.";
         form.querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = true);
         return;
       }
 
-      const data = decodeTokenBase64(token);
-      if (!data) {
+      const parts = token.split("&");
+      if (parts.length < 3) {
         result.style.display = "block";
-        result.textContent = "Link inválido: token não pôde ser decodificado.";
+        result.textContent = "Link inválido: formato do token incorreto.";
         form.querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = true);
         return;
       }
 
-      tokenData = data;
+      const hashRecebido = parts[0];
+      const id           = parts[1];
+      const nome         = parts.slice(2).join("&"); // caso algum & tenha escapado
 
-      // Calcula o hash esperado a partir do JSON
-      const jsonStr = JSON.stringify(tokenData);
-      const hashGerado = await sha1Short(jsonStr);
+      const core = `${id}&${nome}`;
+      const fullHash = await sha1(core);
+      const hashEsperado = fullHash.substring(0,5);
 
-      console.log("Token decodificado:", tokenData);
-      console.log("Hash recebido:", hashRecebido);
-      console.log("Hash gerado :", hashGerado);
-
-      if (hashGerado !== hashRecebido) {
+      if (hashRecebido !== hashEsperado) {
         result.style.display = "block";
-        result.textContent = "Link inválido: verificação de integridade falhou (hash inconsistente).";
+        result.textContent = "Link inválido: verificação de integridade falhou.";
         form.querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = true);
         return;
       }
 
-      hashValido = true;
+      tokenInfo = { id, nome };
+      tokenValido = true;
 
-      // Preenche identificação visível para o usuário
-      const empresaTxt = tokenData.empresa || "Empresa não informada";
-      const nomeTxt = tokenData.nome || "Nome não informado";
-      identificacao.textContent = `Respondendo por: ${empresaTxt} — ${nomeTxt}`;
+      identificacao.textContent = `Respondendo: ${nome} (ID ${id})`;
     })();
 
-    // -------- Lógica da UI --------
+    // ==== LÓGICA DE UI ====
     motivo.addEventListener('change', () => {
       if (motivo.value === 'Outro') {
         motivoOutro.style.display = 'block';
@@ -348,39 +378,67 @@
       }
     });
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      if (!hashValido) {
+      if (!tokenValido) {
         result.style.display = 'block';
         result.textContent = 'Não é possível enviar: link inválido ou não verificado.';
         return;
       }
 
       const data = new FormData(form);
+      const recomendacao = data.get('recommendation');
+      const motivoBase   = data.get('motivo');
+      const motivoOutroV = data.get('motivo_outro');
+      const comentario   = data.get('coment_adicional') || '';
+
+      const motivoFinal = motivoBase === 'Outro'
+        ? (motivoOutroV || 'Outro')
+        : motivoBase;
 
       const payload = {
-        empresa: tokenData.empresa || null,
-        nome: tokenData.nome || null,
-        recommendation: data.get('recommendation'),
-        motivo: data.get('motivo') === 'Outro'
-          ? (data.get('motivo_outro') || 'Outro')
-          : data.get('motivo'),
-        coment_adicional: data.get('coment_adicional') || ''
+        ID: tokenInfo.id,
+        Nome: tokenInfo.nome,
+        RecomendarServico: recomendacao,
+        MotivoDaNota: motivoFinal,
+        ComentAdicional: comentario
       };
 
       result.style.display = 'block';
-      result.textContent = 'Pronto — dados capturados: ' + JSON.stringify(payload, null, 2);
+      result.textContent = 'Enviando sua resposta...';
+      submitBtn.disabled = true;
 
-      console.log('npscanais payload:', payload);
-      // Aqui você pode fazer um fetch() para enviar para um webhook/endpoint
-      // fetch('https://seu-endpoint.com/webhook', { method: 'POST', body: JSON.stringify(payload) ... })
+      try {
+        const resp = await fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          throw new Error("Status " + resp.status);
+        }
+
+        result.textContent = "Obrigado! Sua resposta foi registrada com sucesso.";
+        form.querySelectorAll("input, select, textarea, button").forEach(el => {
+          if (el !== resetBtn) el.disabled = true;
+        });
+        console.log("Payload enviado:", payload);
+      } catch (err) {
+        console.error("Erro ao enviar:", err);
+        result.textContent = "Ocorreu um erro ao enviar sua resposta. Tente novamente em alguns instantes.";
+        submitBtn.disabled = false;
+      }
     });
 
     resetBtn.addEventListener('click', () => {
       form.reset();
       motivoOutro.style.display = 'none';
       result.style.display = 'none';
+      submitBtn.disabled = false;
     });
   </script>
 </body>
