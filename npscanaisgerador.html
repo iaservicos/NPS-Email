@@ -49,6 +49,7 @@
       border-radius: 6px;
       cursor: pointer;
       margin-top: 20px;
+      margin-right: 8px;
     }
 
     button:disabled {
@@ -89,7 +90,7 @@
   <p>Token = 5 primeiros dígitos do hash + 5 dígitos de ID + Nome</p>
 
   <label>URL base do link</label>
-  <input id="baseUrl" type="text" value="https://seusite.com/formulario.html"/>
+  <input id="baseUrl" type="text" value="https://npspositivo.site/npscanais.html"/>
 
   <label>Arquivo Excel ou CSV</label>
   <input id="fileInput" type="file" accept=".xlsx,.csv"/>
@@ -103,18 +104,29 @@
 </div>
 
 <script>
-  const fileInput = document.getElementById("fileInput");
+  const fileInput   = document.getElementById("fileInput");
   const generateBtn = document.getElementById("generateBtn");
   const downloadBtn = document.getElementById("downloadBtn");
-  const statusEl = document.getElementById("status");
-  const resultsEl = document.getElementById("results");
+  const statusEl    = document.getElementById("status");
+  const resultsEl   = document.getElementById("results");
 
-  let rows = [];
   let outputRows = [];
+
+  // Normaliza nomes de cabeçalho (tira BOM, espaços, acentos/caracteres estranhos)
+  function normHeader(name) {
+    return String(name || "")
+      .replace(/\uFEFF/g, "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, ""); // fica tipo NOME, ID, EMPRESA
+  }
 
   fileInput.addEventListener("change", () => {
     generateBtn.disabled = !fileInput.files.length;
+    downloadBtn.disabled = true;
     statusEl.textContent = "";
+    resultsEl.innerHTML = "";
+    outputRows = [];
   });
 
   async function sha1(text) {
@@ -127,14 +139,22 @@
 
   function parseCSV(text) {
     const lines = text.split(/\r?\n/).filter(l => l.trim());
-    const header = lines[0].split(",").map(h => h.trim());
-    const rows = [];
+    if (!lines.length) return { header: [], rows: [] };
+
+    // deteção simples de delimitador
+    const first = lines[0];
+    let delim = ",";
+    if (first.indexOf(";") !== -1 && first.indexOf(",") === -1) delim = ";";
+
+    const header = first.split(delim).map(h => h.trim().replace(/^"|"$/g, ""));
+    const rows   = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(",");
+      const cols = lines[i].split(delim);
+      if (!cols.length) continue;
       const row = {};
       for (let j = 0; j < header.length; j++) {
-        row[header[j]] = cols[j] ? cols[j].trim() : "";
+        row[header[j]] = cols[j] ? cols[j].trim().replace(/^"|"$/g, "") : "";
       }
       rows.push(row);
     }
@@ -146,25 +166,25 @@
     const ws = wb.Sheets[wb.SheetNames[0]];
     const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-    const header = json[0].map(x => String(x));
-    const rows = [];
+    if (!json.length) return { header: [], rows: [] };
+
+    const header = json[0].map(x => x != null ? String(x) : "");
+    const rows   = [];
 
     for (let i = 1; i < json.length; i++) {
-      if (!json[i]) continue;
+      const arr = json[i];
+      if (!arr || arr.every(v => v == null || String(v).trim() === "")) continue;
       const obj = {};
       for (let j = 0; j < header.length; j++) {
-        obj[header[j]] = json[i][j] ? String(json[i][j]) : "";
+        obj[header[j]] = arr[j] != null ? String(arr[j]) : "";
       }
       rows.push(obj);
     }
-
     return { header, rows };
   }
 
-
-  generateBtn.addEventListener("click", async () => {
+  generateBtn.addEventListener("click", () => {
     const file = fileInput.files[0];
-
     if (!file) return;
 
     const baseUrl = document.getElementById("baseUrl").value.trim();
@@ -178,48 +198,77 @@
 
     reader.onload = async e => {
       let parsed;
-
       if (/\.csv$/i.test(file.name)) {
         parsed = parseCSV(e.target.result);
       } else {
         parsed = parseXLSX(e.target.result);
       }
 
-      const { header, rows: fileRows } = parsed;
+      const { header, rows } = parsed;
 
-      if (!header.includes("Nome")) {
-        statusEl.textContent = "A coluna 'Nome' é obrigatória!";
+      if (!header.length) {
+        statusEl.textContent = "Cabeçalho não encontrado no arquivo.";
         statusEl.className = "error status";
         return;
       }
 
-      const hasID = header.includes("ID");
+      if (!rows.length) {
+        statusEl.textContent = "Nenhuma linha de dados encontrada.";
+        statusEl.className = "error status";
+        return;
+      }
+
+      const headerNorm = header.map(normHeader);
+      console.log("Header bruto:", header);
+      console.log("Header normalizado:", headerNorm);
+
+      const idxNome = headerNorm.findIndex(h => h === "NOME");
+      if (idxNome === -1) {
+        statusEl.textContent = "Não encontrei a coluna 'Nome' (NOME/Nome) no arquivo.";
+        statusEl.className = "error status";
+        return;
+      }
+      const colNome = header[idxNome];
+
+      const idxID = headerNorm.findIndex(h => h === "ID");
+      const colID = idxID !== -1 ? header[idxID] : null;
 
       outputRows = [];
 
-      for (const row of fileRows) {
-        const nome = row["Nome"] || "";
-        let id = row["ID"] || "";
+      for (const row of rows) {
+        const nomeRaw = row[colNome] != null ? String(row[colNome]) : "";
+        const nome = nomeRaw.trim();
 
-        if (!id) {
-          id = String(Math.floor(Math.random() * 100000)).padStart(5, "0");
+        if (!nome) continue; // pula linhas sem nome
+
+        let idVal = colID ? (row[colID] != null ? String(row[colID]) : "") : "";
+        idVal = idVal.trim();
+
+        if (!idVal) {
+          idVal = String(Math.floor(Math.random() * 100000)).padStart(5, "0");
         } else {
-          id = String(id).padStart(5, "0");
+          idVal = idVal.padStart(5, "0").slice(-5);
         }
 
-        const core = `${id}&${nome}`;
-        const h = await sha1(core);
-        const hash5 = h.substring(0, 5);
+        const core = `${idVal}&${nome}`;
+        const fullHash = await sha1(core);
+        const hash5 = fullHash.substring(0, 5);
 
-        const token = `${hash5}&${id}&${nome}`;
-        const link = `${baseUrl}?token=${encodeURIComponent(token)}`;
+        const token = `${hash5}&${idVal}&${nome}`;
+        const link  = `${baseUrl}?token=${encodeURIComponent(token)}`;
 
         outputRows.push({
+          ID: idVal,
           Nome: nome,
-          ID: id,
           Token: token,
           Link: link
         });
+      }
+
+      if (!outputRows.length) {
+        statusEl.textContent = "Nenhuma linha válida (com Nome) encontrada.";
+        statusEl.className = "error status";
+        return;
       }
 
       statusEl.textContent = "Tokens gerados com sucesso!";
@@ -229,7 +278,11 @@
       renderTable(outputRows.slice(0, 20));
     };
 
-    reader.readAsBinaryString ? reader.readAsBinaryString(file) : reader.readAsArrayBuffer(file);
+    if (/\.csv$/i.test(file.name)) {
+      reader.readAsText(file, "utf-8");
+    } else {
+      reader.readAsArrayBuffer(file);
+    }
   });
 
   function renderTable(rows) {
@@ -247,9 +300,10 @@
   }
 
   downloadBtn.addEventListener("click", () => {
+    if (!outputRows.length) return;
     let csv = "ID,Nome,Token,Link\n";
     outputRows.forEach(r => {
-      csv += `"${r.ID}","${r.Nome}","${r.Token}","${r.Link}"\n`;
+      csv += `"${r.ID}","${r.Nome.replace(/"/g,'""')}","${r.Token}","${r.Link}"\n`;
     });
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
