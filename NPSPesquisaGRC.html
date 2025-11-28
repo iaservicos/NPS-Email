@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pesquisa rápida – NPS</title>
+  <style>
+    * { box-sizing: border-box; }
+    
+    body { 
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; 
+      margin: 0;
+      padding: clamp(16px, 4vw, 32px);
+      color: #091c28;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .card { 
+      width: 100%;
+      max-width: clamp(320px, 90vw, 800px);
+      background: #fff;
+      padding: clamp(20px, 5vw, 48px);
+      border-radius: clamp(12px, 2vw, 20px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    } 
+    
+    .logo-wrap {
+      text-align: center;
+      margin-bottom: clamp(16px, 3vw, 24px);
+      padding: 14px 18px;
+      background: #003a70;          /* fundo azul escuro pra destacar a logo */
+      border-radius: 12px;
+    }
+
+    .logo-wrap img {
+      max-width: 220px;
+      height: auto;
+      filter: drop-shadow(0 0 6px rgba(0,0,0,0.45)); /* deixa mais “forte” */
+    }
+
+    h1 { 
+      font-size: clamp(1.25rem, 4vw, 1.75rem);
+      margin: 0 0 clamp(8px, 2vw, 16px);
+      font-weight: 700;
+    }
+
+    #identificacao {
+      margin: 0 0 clamp(16px, 3vw, 24px);
+    }
+    
+    label { 
+      display: block;
+      margin: clamp(16px, 3vw, 20px) 0 clamp(8px, 2vw, 12px);
+      font-weight: 600;
+      font-size: clamp(0.95rem, 2vw, 1.05rem);
+    }
+    
+    .scale { 
+      display: grid;
+      grid-template-columns: repeat(11, minmax(0, 1fr));
+      gap: clamp(4px, 1vw, 8px);
+      margin-top: clamp(8px, 2vw, 12px);
+    }
+    
+    .scale input { 
+      display: none;
+    }
+    
+    .scale label { 
+      padding: clamp(10px, 2.5vw, 14px) clamp(8px, 2vw, 12px);
+      border-radius: 10px;
+      border: 2px solid transparent;
+      background: var(--nps-color, #f8fbff);
+      cursor: pointer;
+      font-weight: 700;
+      font-size: clamp(0.95rem, 2vw, 1.1rem);
+      text-align: center;
+      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease, filter 150ms ease;
+      min-height: clamp(44px, 10vw, 56px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    
+    .scale label:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.20);
+      filter: brightness(1.05);
+    }
+    
+    .scale input:checked + label { 
+      border-color: #ffffffcc;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      transform: translateY(-2px) scale(1.02);
+      filter: brightness(1.08);
+    }
+    
+    select,
+    input[type="text"],
+    textarea { 
+      width: 100%;
+      padding: clamp(10px, 2.5vw, 14px) clamp(12px, 3vw, 16px);
+      border-radius: clamp(8px, 1.5vw, 12px);
+      border: 2px solid #e6eef7;
+      font-family: inherit;
+      font-size: clamp(0.95rem, 2vw, 1rem);
+      transition: border 200ms ease, box-shadow 200ms ease;
+      background: #fff;
+    }
+    
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath fill='%23091c28' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right clamp(12px, 3vw, 16px) center;
+      padding-right: clamp(36px, 8vw, 44px);
+    }
+    
+    textarea { 
+      min-height: clamp(100px, 20vw, 140px);
+      resize: vertical;
+      line-height: 1.5;
+    }
+    
+    select:focus,
+    input[type="text"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #0066b3;
+      box-shadow: 0 0 0 3px rgba(0,102,179,0.1);
+    }
+    
+    .actions { 
+      margin-top: clamp(20px, 4vw, 28px);
+      display: flex;
+      flex-wrap: wrap;
+      gap: clamp(10px, 2.5vw, 14px);
+    }
+    
+    button { 
+      flex: 1 1 clamp(120px, 30vw, 160px);
+      padding: clamp(12px, 2.5vw, 16px) clamp(20px, 4vw, 28px);
+      border-radius: clamp(10px, 2vw, 14px);
+      border: none;
+      background: #0066b3;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: clamp(0.95rem, 2vw, 1.05rem);
+      font-family: inherit;
+      transition: all 200ms ease;
+    }
+    
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,102,179,0.25);
+    }
+    
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+    }
+    
+    .muted { 
+      font-weight: 400;
+      color: #666;
+      font-size: clamp(0.85rem, 1.8vw, 0.95rem);
+      margin-top: clamp(6px, 1.5vw, 10px);
+    }
+    
+    #result {
+      margin-top: clamp(16px, 3vw, 20px);
+      padding: clamp(12px, 3vw, 16px);
+      border-radius: clamp(8px, 1.5vw, 12px);
+      background: #f1f7ff;
+      border: 2px solid #e6eef7;
+      font-size: clamp(0.85rem, 1.8vw, 0.95rem);
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    
+    @media (max-width: 480px) {
+      .scale {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      
+      .actions {
+        flex-direction: column;
+      }
+      
+      button {
+        width: 100%;
+      }
+    }
+    
+    @media (min-width: 1920px) {
+      body {
+        font-size: 18px;
+      }
+      
+      .card {
+        max-width: 900px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="logo-wrap">
+      <img src="LOGO-POSITIVO-TECNOLOG[IA]-tagline 1.png" alt="Positivo Tecnologia">
+    </div>
+
+    <h1>Pesquisa de Satisfação - GRC</h1>
+    <p id="identificacao" class="muted"></p>
+
+    <p class="muted" style="margin-bottom: 20px; font-size: 0.95rem;">
+      Sua opinião é muito importante para nós. Ela nos ajuda a aprimorar nossos serviços e oferecer uma experiência cada vez melhor.
+    </p>
+    
+    <form id="npsForm" autocomplete="off">
+      <div>
+        <label for="recommendation">De 0 a 10, qual a probabilidade de você recomendar a Positivo Tecnologia para colegas de trabalho ou empresas parceiras?</label>
+        <p class="muted" style="margin-top: 4px; margin-bottom: 8px;">0 = Nada provável | 10 = Extremamente provável</p>
+        <div class="scale" id="scale" role="radiogroup" aria-labelledby="recommendation"></div>
+      </div>
+
+      <div>
+        <label for="motivo">Pode me contar o principal motivo da sua nota?</label>
+        <textarea
+          id="motivo"
+          name="motivo"
+          required
+          maxlength="100"
+          placeholder="Digite aqui o principal motivo da sua avaliação"
+          style="min-height: 70px;"
+        ></textarea>
+      </div>
+
+      <div>
+        <label for="coment_adicional">Qual necessidade ou melhoria você considera mais importante para o futuro dos nossos produtos/serviços? (opcional)</label>
+        <textarea id="coment_adicional" name="coment_adicional" maxlength="1000" placeholder="Deixe sua sugestão (opcional)"></textarea>
+      </div>
+
+      <div class="actions">
+        <button type="submit" id="submitBtn">Enviar</button>
+        <button type="button" id="resetBtn" style="background:#e6eef7;color:#0066b3">Limpar</button>
+      </div>
+    </form>
+
+    <div id="result" style="display:none;"></div>
+  </main>
+
+  <script>
+    const WEBHOOK_URL =
+      "https://defaultfbcbd4a1cffc4c50b5a8611abdfe17.8c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/1014241f120d404281a08b22845adfd1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ubsa_pzOBZtYsSIo7aYDrTWkJMEZHtnGszo6gbdZ02o";
+
+    function getQueryParam(param) {
+      return new URLSearchParams(window.location.search).get(param);
+    }
+
+    async function sha1(text) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(text);
+      const hashBuffer = await crypto.subtle.digest("SHA-1", data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    function npsColor(score) {
+      const colors = [
+        "#f44336", "#f4511e", "#ff7043", "#ff9800", "#ffb300",
+        "#ffd54f", "#fff176", "#d4e157", "#9ccc65", "#66bb6a", "#43a047"
+      ];
+      return colors[score] || "#f8fbff";
+    }
+
+    function buildScale() {
+      const container = document.getElementById("scale");
+      for (let i = 0; i <= 10; i++) {
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.id = "r" + i;
+        input.name = "recommendation";
+        input.value = String(i);
+        if (i === 10) input.required = true;
+
+        const label = document.createElement("label");
+        label.setAttribute("for", "r" + i);
+        label.style.setProperty("--nps-color", npsColor(i));
+        label.textContent = String(i);
+
+        container.appendChild(input);
+        container.appendChild(label);
+      }
+    }
+
+    const motivo        = document.getElementById('motivo');
+    const form          = document.getElementById('npsForm');
+    const result        = document.getElementById('result');
+    const resetBtn      = document.getElementById('resetBtn');
+    const submitBtn     = document.getElementById('submitBtn');
+    const identificacao = document.getElementById('identificacao');
+
+    let tokenInfo  = { id: null, nome: null };
+    let tokenValido = false;
+
+    (async () => {
+      buildScale();
+
+      const token = getQueryParam("token");
+      if (!token) {
+        result.style.display = "block";
+        result.textContent   = "Link inválido: token ausente.";
+        form.querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = true);
+        return;
+      }
+
+      const parts = token.split("&");
+      if (parts.length < 3) {
+        result.style.display = "block";
+        result.textContent   = "Link inválido: formato do token incorreto.";
+        form.querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = true);
+        return;
+      }
+
+      const hashRecebido = parts[0];
+      const id           = parts[1];
+      const nome         = parts.slice(2).join("&");
+
+      const core         = `${id}&${nome}`;
+      const fullHash     = await sha1(core);
+      const hashEsperado = fullHash.substring(0, 5);
+
+      if (hashRecebido !== hashEsperado) {
+        result.style.display = "block";
+        result.textContent   = "Link inválido: verificação de integridade falhou.";
+        form.querySelectorAll("input, select, textarea, button").forEach(el => el.disabled = true);
+        return;
+      }
+
+      tokenInfo   = { id, nome };
+      tokenValido = true;
+
+      identificacao.textContent = `Respondendo: ${nome} (ID ${id})`;
+    })();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (!tokenValido) {
+        result.style.display = 'block';
+        result.textContent   = 'Não é possível enviar: link inválido ou não verificado.';
+        return;
+      }
+
+      const data          = new FormData(form);
+      const recomendacao  = data.get('recommendation');
+      const motivoDaNota  = data.get('motivo') || '';
+      const comentario    = data.get('coment_adicional') || '';
+
+      const payload = {
+        ID: tokenInfo.id,
+        Nome: tokenInfo.nome,
+        RecomendarServico: recomendacao,
+        MotivoDaNota: motivoDaNota,
+        ComentAdicional: comentario
+      };
+
+      result.style.display = 'block';
+      result.textContent   = 'Enviando sua resposta...';
+      submitBtn.disabled   = true;
+
+      try {
+        const resp = await fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) throw new Error("Status " + resp.status);
+
+        result.textContent = "Obrigado! Sua resposta foi registrada com sucesso.";
+        form.querySelectorAll("input, select, textarea, button").forEach(el => {
+          if (el !== resetBtn) el.disabled = true;
+        });
+        console.log("Payload enviado:", payload);
+      } catch (err) {
+        console.error("Erro ao enviar:", err);
+        result.textContent = "Ocorreu um erro ao enviar sua resposta. Tente novamente em alguns instantes.";
+        submitBtn.disabled = false;
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      form.reset();
+      result.style.display = 'none';
+      submitBtn.disabled   = false;
+    });
+  </script>
+</body>
+</html>
