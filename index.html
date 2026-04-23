@@ -1186,6 +1186,7 @@
 
 		<script>
 			const TOKEN_PARAM = "token";
+			const TOKEN_PARAM_ALIASES = ["token", "tk", "t"];
 			const STATE = {
 				initialSearch: window.location.search,
 				invite: null,
@@ -1234,8 +1235,47 @@
 				return acc.toString().padStart(5, "0");
 			}
 
+			function normalizeBase64Token(tokenValue) {
+				if (!tokenValue) {
+					return "";
+				}
+
+				// Alguns canais convertem '+' em espaço e outros usam Base64 URL-safe (- e _).
+				const normalizedChars = tokenValue
+					.trim()
+					.replace(/ /g, "+")
+					.replace(/-/g, "+")
+					.replace(/_/g, "/");
+
+				const paddingNeeded = (4 - (normalizedChars.length % 4)) % 4;
+				return normalizedChars + "=".repeat(paddingNeeded);
+			}
+
+			function getTokenFromUrl() {
+				const params = new URLSearchParams(window.location.search);
+				for (const [key, value] of params.entries()) {
+					if (TOKEN_PARAM_ALIASES.includes(key.toLowerCase()) && value) {
+						return value;
+					}
+				}
+
+				if (window.location.hash) {
+					const hashText = window.location.hash.replace(/^#/, "");
+					const hashParams = hashText.includes("=")
+						? new URLSearchParams(hashText)
+						: new URLSearchParams(hashText.includes("?") ? hashText.split("?")[1] : "");
+					for (const [key, value] of hashParams.entries()) {
+						if (TOKEN_PARAM_ALIASES.includes(key.toLowerCase()) && value) {
+							return value;
+						}
+					}
+				}
+
+				return null;
+			}
+
 					function decodeBase64(base64String) {
-						const binary = atob(base64String);
+						const binary = atob(normalizeBase64Token(base64String));
 						if (typeof TextDecoder === "function") {
 							const bytes = new Uint8Array(binary.length);
 							for (let i = 0; i < binary.length; i += 1) {
@@ -1423,20 +1463,23 @@
 				event.preventDefault();
 			const formData = new FormData(elements.surveyForm);
 			const payload = {
-				chamado: STATE.invite.chamado,
-				tipo_equipamento: STATE.invite.description,
-				data_chamado: STATE.invite.date,
-				problema_solucionado: formData.get("problemSolved"),
-				recomendar_servico: formData.get("recommendation"),
-				motivo_nota: formData.get("reason"),
-				nota_atp: formData.get("generalSatisfaction"),
-				avaliacao_produto: formData.get("productScore"),
-				coment_adicional: formData.get("finalMessage") || "",
+				"Nome Do Cliente": "Email",
+				telefone: "Email",
+				Chamado: STATE.invite.chamado,
+				"Tipo Do Equipamento": STATE.invite.description,
+				"Problema Solucionado": formData.get("problemSolved") || "",
+				"Recomendar Servico": formData.get("recommendation") || "",
+				"Motivo Da Nota": formData.get("reason") || "",
+				"Nota Atp": formData.get("generalSatisfaction") || "",
+				"Avaliacao Do Produto": formData.get("productScore") || "",
+				"Data Do Chamado": STATE.invite.date,
+				"Coment adicional": formData.get("finalMessage") || "",
 			};
 
 			console.info("Pesquisa enviada", payload);				// Enviar para o webhook
+			let sentSuccessfully = false;
 				try {
-					const webhookUrl = "https://defaultfbcbd4a1cffc4c50b5a8611abdfe17.8c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c0ebbe20aa9142058b4601fdd5d5234b/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=P9bDyg5DsuLGX8qezx-OXZ65hw2YUCbVmAT8hkj_tkw";
+					const webhookUrl = "https://1f6c456c3a31ed609da03fbecefa06.ee.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c0771e64d1364604aa8148d8aa401e7f/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=iz3qup7AJrO_VIosl17-QrShsmCvI1N2AOMz-fq542k";
 					const response = await fetch(webhookUrl, {
 						method: "POST",
 						headers: {
@@ -1450,10 +1493,14 @@
 					}
 
 					console.info("Dados enviados com sucesso para o webhook");
+				sentSuccessfully = true;
 				} catch (error) {
 					console.error("Erro ao enviar para o webhook:", error);
-					// Continua exibindo sucesso para o usuário mesmo se houver erro
 				}
+
+			if (!sentSuccessfully) {
+				return;
+			}
 
 				// Exibir tela de agradecimento
 				setTimeout(() => {
@@ -1661,8 +1708,7 @@
 				initSpeechRecognition();
 
 				try {
-					const params = new URLSearchParams(window.location.search);
-					const token = params.get(TOKEN_PARAM);
+					const token = getTokenFromUrl();
 					const invite = parseInviteFromToken(token);
 					STATE.invite = invite;
 					STATE.initialSearch = window.location.search;
