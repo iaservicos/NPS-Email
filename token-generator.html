@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Gerador de Token da Pesquisa</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
       :root {
         color-scheme: light;
@@ -267,16 +268,16 @@
       <div class="section-divider"></div>
 
       <header>
-        <h1>Geração em massa (CSV)</h1>
-        <p>Faça upload de um arquivo CSV com as colunas: <code>chamado</code>, <code>data</code> e <code>descricao</code></p>
+        <h1>Geração em massa (CSV / Excel)</h1>
+        <p>Faça upload de um arquivo CSV ou Excel (.xlsx, .xls) com as colunas: <code>chamado</code>, <code>data</code> e <code>descricao</code></p>
       </header>
 
       <div>
         <div class="file-upload">
-          <input type="file" id="csvFile" accept=".csv,text/csv" />
+          <input type="file" id="csvFile" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
           <label for="csvFile" class="file-upload-label">
             <span>📁</span>
-            <span>Clique para selecionar arquivo CSV</span>
+            <span>Clique para selecionar arquivo CSV ou Excel</span>
           </label>
         </div>
         <div id="fileInfo" class="file-info hidden"></div>
@@ -397,27 +398,46 @@
       let parsedData = [];
       let generatedResults = [];
 
-      function parseCSV(text) {
-        const lines = text.trim().split(/\r?\n/);
-        if (lines.length < 2) {
-          throw new Error("CSV vazio ou com apenas cabeçalho.");
+      function normalizeCellDate(value) {
+        if (value instanceof Date && !Number.isNaN(value.getTime())) {
+          const day = String(value.getDate()).padStart(2, "0");
+          const month = String(value.getMonth() + 1).padStart(2, "0");
+          const year = String(value.getFullYear());
+          return `${day}/${month}/${year}`;
+        }
+        if (typeof value === "number") {
+          // Número de série de data do Excel (base 1899-12-30)
+          const serialDate = new Date(Math.round((value - 25569) * 86400 * 1000));
+          if (!Number.isNaN(serialDate.getTime())) {
+            const day = String(serialDate.getUTCDate()).padStart(2, "0");
+            const month = String(serialDate.getUTCMonth() + 1).padStart(2, "0");
+            const year = String(serialDate.getUTCFullYear());
+            return `${day}/${month}/${year}`;
+          }
+        }
+        return String(value == null ? "" : value).trim();
+      }
+
+      function buildRows(matrix, source) {
+        if (!matrix || matrix.length < 2) {
+          throw new Error(`${source} vazio ou com apenas cabeçalho.`);
         }
 
-        const header = lines[0].split(/[,;]/);
-        const chamadoIdx = header.findIndex(h => /chamado/i.test(h.trim()));
-        const dataIdx = header.findIndex(h => /data/i.test(h.trim()));
-        const descricaoIdx = header.findIndex(h => /descri[cç][aã]o/i.test(h.trim()));
+        const header = matrix[0].map(h => String(h == null ? "" : h).trim());
+        const chamadoIdx = header.findIndex(h => /chamado/i.test(h));
+        const dataIdx = header.findIndex(h => /data/i.test(h));
+        const descricaoIdx = header.findIndex(h => /descri[cç][aã]o/i.test(h));
 
         if (chamadoIdx === -1 || dataIdx === -1) {
-          throw new Error("CSV deve conter colunas 'chamado' e 'data' (descrição é opcional).");
+          throw new Error(`${source} deve conter colunas 'chamado' e 'data' (descrição é opcional).`);
         }
 
         const rows = [];
-        for (let i = 1; i < lines.length; i++) {
-          const cols = lines[i].split(/[,;]/);
-          const chamado = (cols[chamadoIdx] || "").trim();
-          const data = (cols[dataIdx] || "").trim();
-          const descricao = descricaoIdx !== -1 ? (cols[descricaoIdx] || "").trim() : "";
+        for (let i = 1; i < matrix.length; i++) {
+          const cols = matrix[i] || [];
+          const chamado = String(cols[chamadoIdx] == null ? "" : cols[chamadoIdx]).trim();
+          const data = normalizeCellDate(cols[dataIdx]);
+          const descricao = descricaoIdx !== -1 ? String(cols[descricaoIdx] == null ? "" : cols[descricaoIdx]).trim() : "";
 
           if (chamado && data) {
             rows.push({ linha: i + 1, chamado, data, descricao });
@@ -425,10 +445,29 @@
         }
 
         if (rows.length === 0) {
-          throw new Error("Nenhuma linha válida encontrada no CSV.");
+          throw new Error(`Nenhuma linha válida encontrada no ${source}.`);
         }
 
         return rows;
+      }
+
+      function parseCSV(text) {
+        const lines = text.trim().split(/\r?\n/);
+        const matrix = lines.map(line => line.split(/[,;]/));
+        return buildRows(matrix, "CSV");
+      }
+
+      function parseExcel(arrayBuffer) {
+        if (typeof XLSX === "undefined") {
+          throw new Error("Biblioteca de leitura de Excel não carregada. Verifique sua conexão com a internet.");
+        }
+        const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        if (!firstSheet) {
+          throw new Error("Planilha Excel vazia.");
+        }
+        const matrix = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: true, blankrows: false });
+        return buildRows(matrix, "Excel");
       }
 
       function renderPreview(data) {
@@ -480,18 +519,29 @@
         FILE_INFO.textContent = `Arquivo selecionado: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
         FILE_INFO.classList.remove("hidden");
 
+        const isExcel = /\.(xlsx|xls)$/i.test(file.name);
         const reader = new FileReader();
         reader.onload = (event) => {
           try {
-            parsedData = parseCSV(event.target.result);
+            parsedData = isExcel
+              ? parseExcel(event.target.result)
+              : parseCSV(event.target.result);
             renderPreview(parsedData);
             CSV_ACTIONS.classList.remove("hidden");
           } catch (error) {
-            CSV_ERROR.textContent = `Erro ao processar CSV: ${error.message}`;
+            CSV_ERROR.textContent = `Erro ao processar arquivo: ${error.message}`;
             CSV_ERROR.classList.remove("hidden");
           }
         };
-        reader.readAsText(file);
+        reader.onerror = () => {
+          CSV_ERROR.textContent = "Erro ao ler o arquivo.";
+          CSV_ERROR.classList.remove("hidden");
+        };
+        if (isExcel) {
+          reader.readAsArrayBuffer(file);
+        } else {
+          reader.readAsText(file);
+        }
       });
 
       GENERATE_BULK.addEventListener("click", () => {
